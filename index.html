@@ -203,11 +203,49 @@ select.input{appearance:none;-webkit-appearance:none;background-image:linear-gra
 
 /* Barra de abajo */
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:0 12px calc(var(--sb) + 10px);pointer-events:none}
-.tabbar nav{pointer-events:auto;max-width:456px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:22px;box-shadow:0 8px 30px var(--shadow);height:64px;padding:0 4px}
+.tabbar nav{pointer-events:auto;max-width:456px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:22px;box-shadow:0 8px 30px var(--shadow);height:64px;padding:0 4px}
 .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink-3);transition:color 160ms ease,transform 160ms var(--ease-out)}
 .tab:active{transform:scale(.94)}
 .tab svg{width:23px;height:23px}
 .tab[aria-current=page]{color:var(--ink)}
+
+/* Sincronización */
+.syncbar{display:flex;align-items:center;gap:6px;margin:0 auto 12px;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:6px 12px;border-radius:99px;background:var(--card);width:max-content;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.syncbar .n{font-size:14px}
+.row.col{flex-direction:column;align-items:stretch;gap:8px}
+.row .input{width:100%}
+/* Meta de peso */
+.goal .big{font:800 44px/1 var(--cond)}
+.goal .u{font:700 18px var(--cond);color:var(--ink-2);margin-left:4px}
+.goal .meter{height:10px;border-radius:5px}
+.goal .meter i{border-radius:5px}
+.goal .foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:13px;color:var(--ink-2)}
+/* Correr */
+.wkm{display:flex;align-items:baseline;gap:6px}
+.wkm .big{font:800 52px/1 var(--cond)}
+.wkm .of{font:700 20px var(--cond);color:var(--ink-2)}
+.plan{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.plan li{display:grid;grid-template-columns:52px 1fr 1fr;align-items:center;gap:8px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.plan li:first-child{border-top:0}
+.plan li.cur{font-weight:700}
+.plan li.cur b{color:var(--k)}
+.plan b{font:700 17px var(--cond)}
+.plan .dl{font-size:11px;font-weight:600;color:var(--ink-3);display:block}
+.plan .d{display:flex;align-items:center;gap:6px}
+.plan .d svg{width:16px;height:16px;color:var(--rest)}
+.rl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.rl li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:11px 0;border-top:1px solid var(--line)}
+.rl li:first-child{border-top:0}
+.rl .km{font:800 24px/1 var(--cond)}
+.rl small{color:var(--ink-2);font-size:13px}
+.rl .pz{grid-row:span 2;align-self:center;text-align:right;font:700 18px var(--cond)}
+.rl .pz em{display:block;font:600 11px var(--sans);font-style:normal;color:var(--ink-3)}
+.rl .pz.ok em{color:var(--rest)}.rl .pz.fast em{color:var(--pierna)}
+.gx{list-style:none;margin:0;padding:0}
+.gx li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.gx li:first-child{border-top:0}
+.gx .up{color:var(--rest);font-weight:700}.gx .dn{color:var(--pierna);font-weight:700}
+.raw{white-space:pre-wrap;font:12px ui-monospace,Menlo,monospace;background:var(--well);border-radius:10px;padding:10px;max-height:220px;overflow:auto;margin:10px 0 0}
 
 /* Hoja (importar menú) */
 .scrim{position:fixed;inset:0;background:rgba(13,16,21,.45);z-index:30;opacity:0;transition:opacity 240ms ease;pointer-events:none}
@@ -238,6 +276,7 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
 <canvas id="confetti"></canvas>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ck" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
 <div class="app">
+  <button class="syncbar press" id="syncBar" aria-live="polite" aria-label="Estado de sincronización. Toca para sincronizar"></button>
 
   <!-- HOY -->
   <main class="view" id="v-hoy">
@@ -249,9 +288,18 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
     <div class="plates" id="hPlates" role="group" aria-label="Tu semana"></div>
     <div class="soft" id="hSoft" hidden></div>
     <section class="card" id="hWork"></section>
-    <section class="card" id="hFood"></section>
     <button class="btn" id="hDone"></button>
+    <section class="card goal k-rest" id="hGoal"></section>
+    <section class="card" id="hFood"></section>
     <div class="install" id="installTip" hidden><b>Instálala en tu iPhone:</b> en Safari toca Compartir y luego “Agregar a pantalla de inicio”.</div>
+  </main>
+
+  <!-- CORRER -->
+  <main class="view" id="v-run" hidden>
+    <div class="top"><h1>Correr</h1><span class="chip">Suave <b class="n">6:30–7:00</b> /km</span></div>
+    <section class="card k-correr" id="rWeek"></section>
+    <section class="card k-correr" id="rPlan"></section>
+    <section class="card" id="rList"></section>
   </main>
 
   <!-- COMIDA -->
@@ -285,6 +333,7 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
     <section class="card"><div class="card-h"><h2>Peso</h2><span class="sub" id="pKgNow"></span></div><div class="chart" id="chartKg"></div>
       <div class="legend"><span><i></i>Meta 80 kg</span><span><i class="d"></i>Reto 75 kg</span></div></section>
     <section class="card"><div class="card-h"><h2>Cintura</h2><span class="sub" id="pWaistNow"></span></div><div class="chart" id="chartWaist"></div></section>
+    <section class="card" id="pGym"></section>
     <section class="card"><div class="card-h"><h2>Racha</h2><span class="sub" id="pStreakTxt"></span></div><div class="weeks" id="pWeeks"></div>
       <p class="help" style="margin-top:10px">Una semana cuenta cuando haces al menos 3 sesiones (lunes a sábado).</p></section>
     <section class="card"><div class="card-h"><h2>Fotos por semana</h2></div><div class="gal" id="pGal"></div></section>
@@ -297,6 +346,14 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
   <!-- AJUSTES -->
   <main class="view" id="v-aj" hidden>
     <h1>Ajustes</h1>
+    <section><h2 style="margin-bottom:10px">Strava y nube</h2>
+      <div class="list">
+        <label class="row col"><span>Dirección de tu Worker<small>La que te da Cloudflare, termina en .workers.dev</small></span>
+          <input class="input" id="stWorker" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://mi-entrenador.tu-nombre.workers.dev"></label>
+        <button class="row" id="stConnect"><span id="stConnTxt">Conectar Strava</span><span class="go">›</span></button>
+        <button class="row" id="stSync"><span>Sincronizar ahora<small id="stSyncTxt"></small></span><span class="go">›</span></button>
+      </div>
+    </section>
     <section><h2 style="margin-bottom:10px">Respaldo</h2>
       <div class="list">
         <button class="row" id="bkSave"><span>Exportar respaldo<small id="bkInfo">JSON con todo menos las fotos. Guárdalo en mi-sistema/respaldos-entrenador</small></span><span class="go">›</span></button>
@@ -309,14 +366,15 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
     </section>
     <section><h2 style="margin-bottom:10px">Almacenamiento</h2>
       <div class="list"><div class="row"><span>Guardado protegido<small id="persistTxt">Revisando…</small></span></div>
-        <button class="row danger" id="wipe"><span>Borrar todo<small>Datos y fotos de este celular</small></span></button></div>
+        <button class="row danger" id="wipe"><span>Borrar todo<small>Datos y fotos de este celular y la copia en la nube</small></span></button></div>
     </section>
-    <p class="help" style="text-align:center">Mi entrenador · tus datos viven solo en este celular</p>
+    <p class="help" style="text-align:center">Mi entrenador · funciona sin internet; tus registros se guardan en este celular y se copian a tu nube cuando hay señal</p>
   </main>
 </div>
 
 <div class="tabbar"><nav aria-label="Secciones">
   <button class="tab" data-v="hoy" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h2M19 12h2M7 7v10M17 7v10M5 9v6M19 9v6M7 12h10"/></svg>Hoy</button>
+  <button class="tab" data-v="run"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="4.5" r="1.8"/><path d="M8 21l3-6 3 2v5M6 12l3-3 4 1 2 3 3 1M11 15l2-5"/></svg>Correr</button>
   <button class="tab" data-v="com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0zM8 8c0-2 2-2 2-4M13 8c0-2 2-2 2-4"/></svg>Comida</button>
   <button class="tab" data-v="pro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Progreso</button>
   <button class="tab" data-v="aj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Ajustes</button>
@@ -366,25 +424,53 @@ const weekNo=d=>Math.floor((parse(d)-parse(START))/(7*864e5))+1;
 const weekStart=n=>addDays(START,(n-1)*7);
 const dayKey=d=>DAYKEYS[parse(d).getDay()];
 const half=x=>Math.round(x*2)/2;
-function runKm(w,type){if(w<=1)return 2;const base=Math.min(8,half(3*Math.pow(1.1,w-2)));return type==="largo"?Math.min(14,half(base*1.4)):base;}
+/* Plan de regreso a correr: [miércoles, sábado] en km. Semana 4 es de descarga; luego +10 % por semana. */
+const RUN_PLAN={1:[2,2],2:[2.5,3],3:[3,3.5],4:[2.5,3]};
+const tenth=x=>Math.round(x*10)/10;
+function runPlan(w){if(w<1)return[0,0];if(RUN_PLAN[w])return RUN_PLAN[w];const f=Math.pow(1.1,w-4);return[Math.min(6,tenth(3*f)),Math.min(10,tenth(3.5*f))];}
+function runKm(w,type){return runPlan(w)[type==="largo"?1:0];}
+const PACE_LO=390,PACE_HI=420; // 6:30 y 7:00 min/km en segundos
 function session(d){const k=dayKey(d),p=PLAN[k],w=weekNo(d),soft=w<=1;
   const s={key:k,n:p.n,k:p.k,tag:p.tag||"",w,soft,pre:w<1};
   if(p.ex)s.ex=p.ex.map(([n,sets,reps,kg])=>({n,sets:soft?Math.max(2,sets-1):sets,reps,kg:kg&&soft&&/\d (kg|lb)/.test(kg)?kg+" · hoy ~30 % menos":kg}));
-  if(p.run){s.km=runKm(w,p.run);s.run=p.run;}
+  if(p.run){s.km=runKm(Math.max(1,w),p.run);s.run=p.run;}
   return s;}
 
-/* ---------- Datos (solo en este celular) ---------- */
-const KEY="mi-entrenador:v1";
-const blank=()=>({days:{},menus:{},shop:{},prep:{},body:[],settings:{theme:"auto"},lastBackup:null});
-let S;try{S=JSON.parse(localStorage.getItem(KEY))||blank();}catch(e){S=blank();}
-S={...blank(),...S,settings:{...blank().settings,...(S.settings||{})}};
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){toast("No se pudo guardar. Libera espacio en tu iPhone.");}}
+/* ---------- Datos: todo en IndexedDB de este celular ---------- */
+const KEY="mi-entrenador:v1"; // versión vieja en localStorage (se deja intacta como respaldo)
+const WORKER_DEFAULT="";
+const blank=()=>({days:{},menus:{},shop:{},prep:{},body:[],settings:{theme:"auto",worker:WORKER_DEFAULT},lastBackup:null});
+const norm0=x=>({...blank(),...x,settings:{...blank().settings,...((x&&x.settings)||{})}});
+let S=blank();
 const D=d=>S.days[d]||(S.days[d]={ex:{},fin:false,km:"",min:""});
 
-/* Fotos en IndexedDB (no caben en localStorage) */
 let dbp=null;
-function db(){return dbp||(dbp=new Promise((ok,ko)=>{const r=indexedDB.open("mi-entrenador",1);r.onupgradeneeded=()=>r.result.createObjectStore("fotos");r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);}));}
-async function tx(mode,fn){const d=await db();return new Promise((ok,ko)=>{const t=d.transaction("fotos",mode),st=t.objectStore("fotos");const r=fn(st);t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error);});}
+function db(){return dbp||(dbp=new Promise((ok,ko)=>{const r=indexedDB.open("mi-entrenador",2);
+  r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains("fotos"))d.createObjectStore("fotos");if(!d.objectStoreNames.contains("kv"))d.createObjectStore("kv");};
+  r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);}));}
+async function tx(mode,fn,store="fotos"){const d=await db();return new Promise((ok,ko)=>{const t=d.transaction(store,mode),st=t.objectStore(store);const r=fn(st);t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>ko(t.error);t.onabort=()=>ko(t.error);});}
+const kvGet=k=>tx("readonly",st=>st.get(k),"kv");
+const kvPut=(k,v)=>tx("readwrite",st=>st.put(v,k),"kv");
+
+/* Cola de sincronización.
+   Cada registro tiene una llave fija: day:2026-11-25, body:2026-11-29, menu:<semana>, shop:<semana>, prep:<semana>.
+   Al guardar se compara contra lo último conocido; lo que cambió queda "pendiente" con su hora.
+   Subir lo mismo dos veces no duplica nada: la nube guarda por llave y gana lo más reciente. */
+let SY={q:{},known:{},cursor:0,last:null,err:"",lastTs:0};
+const recs=()=>{const r={};for(const d in S.days)r["day:"+d]=S.days[d];for(const b of S.body)r["body:"+b.d]=b;
+  for(const k in S.menus)r["menu:"+k]=S.menus[k];for(const k in S.shop)r["shop:"+k]=S.shop[k];for(const k in S.prep)r["prep:"+k]=S.prep[k];return r;};
+function track(){const r=recs();let n=0;const ts=SY.lastTs=Math.max(Date.now(),(SY.lastTs||0)+1);
+  for(const k in r){const j=JSON.stringify(r[k]);if(SY.known[k]!==j){SY.known[k]=j;SY.q[k]=ts;n++;}}
+  for(const k in SY.known)if(!(k in r)){delete SY.known[k];SY.q[k]=ts;n++;}
+  return n;}
+let saving=null,saveAgain=false;
+async function saveLocal(){if(saving){saveAgain=true;return saving;}
+  saving=(async()=>{do{saveAgain=false;
+      try{await tx("readwrite",st=>{st.put(JSON.parse(JSON.stringify(S)),"S");st.put(JSON.parse(JSON.stringify(SY)),"sync");},"kv");}
+      catch(e){toast("No se pudo guardar. Libera espacio en tu celular.");}
+    }while(saveAgain);saving=null;})();
+  return saving;}
+function persist(){const n=track();saveLocal();renderSync();if(n)syncSoon(2500);}
 const photoPut=(k,blob)=>tx("readwrite",s=>s.put(blob,k));
 const photoGet=k=>tx("readonly",s=>s.get(k));
 const photoDel=k=>tx("readwrite",s=>s.delete(k));
@@ -422,7 +508,8 @@ function renderHoy(){
   const st=streak();$("hStreak").innerHTML='Racha <b class="n">'+st+'</b>';
   const when=isToday?(s.pre?"Hoy · empiezas mañana":"Hoy · semana "+s.w):parse(sel).toLocaleDateString("es-MX",{weekday:"long",day:"numeric"})+(s.w>=1?" · semana "+s.w:"");
   $("hHero").className="hero k-"+s.k;
-  $("hHero").innerHTML='<p class="when">'+esc(when)+'</p><h1>'+esc(s.n)+'</h1>'+(s.tag?'<p class="tag">'+esc(s.tag)+'</p>':'');
+  $("hHero").innerHTML='<p class="when">'+esc(when)+'</p><h1>'+esc(s.n)+'</h1>'+(s.tag?'<p class="tag">'+esc(s.tag)+'</p>':'')+(g.fin&&g.src==="strava"?'<p class="tag">✓ Llegó desde Strava</p>':'');
+  renderGoal();
   // Tira de la semana (lunes a domingo de la semana del día elegido)
   const wk=Math.max(1,weekNo(sel)),ws=weekStart(wk);
   let ph="";for(let i=0;i<7;i++){const d=addDays(ws,i),ss=session(d),gg=S.days[d];
@@ -451,8 +538,19 @@ function renderHoy(){
        :'<p class="empty">Todavía no hay menú para este día. El sábado pega el JSON que te da Claude en la pestaña Comida.</p><button class="btn ghost sm press" data-go="com" style="margin-top:10px;background:var(--well)">Ir a Comida</button>');
   // Botón terminé
   const B=$("hDone");B.hidden=s.k==="rest";B.className="btn k-"+s.k+(g.fin?" done":"");
-  B.innerHTML=g.fin?CK.replace("<svg>",'<svg width="22" height="22">')+" Sesión hecha":"Terminé ✓";
+  B.innerHTML=g.fin?CK.replace("<svg>",'<svg width="22" height="22">')+(g.src==="strava"?" Hecha · Strava":" Sesión hecha"):"Terminé ✓";
 }
+const fmt1=x=>String(+(+x).toFixed(1)).replace(".",",");
+function renderGoal(){const t=today(),kgs=S.body.filter(r=>r.kg>0),first=kgs[0],last=kgs[kgs.length-1];
+  const ws=weekStart(Math.max(1,weekNo(t))),we=addDays(ws,6),wk=kgs.filter(r=>r.d>=ws&&r.d<=we).pop();
+  const left=Math.max(0,Math.round((parse(GOAL_DATE)-parse(t))/864e5));
+  let pct=0;if(first&&last){pct=first.kg===GOAL?1:(first.kg-last.kg)/(first.kg-GOAL);pct=Math.max(0,Math.min(1,pct));}
+  const show=wk||last;
+  $("hGoal").innerHTML='<div class="card-h"><h2>Rumbo a '+GOAL+' kg</h2><span class="sub">12 abr · faltan '+left+' días</span></div>'+
+    (show?'<div><span class="big n">'+fmt1(show.kg)+'</span><span class="u">kg</span> <span class="sub" style="display:inline">'+(wk?"esta semana":"último registro")+'</span></div>'+
+      '<div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(pct*100)+'"><i style="width:'+(pct*100)+'%"></i></div>'+
+      '<div class="foot"><span>Empezaste en '+fmt1(first.kg)+' kg</span><span>'+(last.kg<=GOAL?"¡Meta lograda!":"Faltan "+fmt1(last.kg-GOAL)+" kg · "+Math.round(pct*100)+" %")+'</span></div>'
+     :'<p class="empty">Registra tu peso el domingo en Progreso y aquí verás tu avance hacia '+GOAL+' kg.</p>');}
 const ICON={ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'};
 function paintPace(){const g=S.days[sel]||{},el=$("rPace");if(!el)return;const km=parseFloat(g.km),mn=parseFloat(g.min);
   if(km>0&&mn>0){const p=mn/km,mm=Math.floor(p),ss=Math.round((p-mm)*60);el.textContent="Ritmo: "+mm+":"+pad(ss%60)+" min/km";}else el.textContent="";}
@@ -575,6 +673,7 @@ function chart(el,pts,opt){
   else s+='<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" style="font-size:14px">Tu primer registro aparece aquí</text>';
   el.innerHTML=s+'</svg>';}
 async function renderPro(){
+  renderGym();
   const t=today(),left=Math.round((parse(GOAL_DATE)-parse(t))/864e5);
   $("pLeft").textContent=left>0?"Faltan "+left+" días para el 12 de abril":"Llegó el 12 de abril";
   if(!$("inDate").value)$("inDate").value=t;
@@ -635,7 +734,7 @@ $("bkSave").onclick=()=>{S.lastBackup=Date.now();persist();
   share("respaldo-entrenador-"+today()+".json",new Blob([JSON.stringify(out,null,1)],{type:"application/json"}));renderAj();};
 $("bkLoad").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
   try{const j=JSON.parse(await f.text()),d=j.datos||j;if(typeof d.days!=="object")throw 0;
-    S={...blank(),...d,settings:{...blank().settings,...(d.settings||{})}};persist();sel=null;cWeek=null;renderAll();toast("Respaldo cargado");}
+    const w=S.settings.worker;S=norm0(d);if(!S.settings.worker)S.settings.worker=w;persist();sel=null;cWeek=null;renderAll();toast("Respaldo cargado");}
   catch(err){toast("Ese archivo no es un respaldo de Mi entrenador");}});
 /* ZIP sin compresión (las fotos ya son JPEG) */
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
@@ -654,16 +753,170 @@ $("bkPhotos").onclick=async()=>{let keys=[];try{keys=await photoKeys();}catch(e)
   const files=[];for(const k of keys){const b=await photoGet(k);const n=weekNo(k);files.push({name:"fotos-entrenador/"+(n<1?"inicio":"semana-"+pad(n))+"-"+k+".jpg",data:new Uint8Array(await b.arrayBuffer())});}
   share("fotos-entrenador-"+today()+".zip",zip(files));};
 let armed=null;function confirmTwice(el,msg){if(armed===el){armed=null;return true;}armed=el;toast(msg);setTimeout(()=>{if(armed===el)armed=null;},3500);return false;}
-$("wipe").onclick=async()=>{if(!confirmTwice($("wipe"),"Toca otra vez para borrar todo, fotos incluidas"))return;S=blank();persist();try{await photoClear();}catch(e){}Object.keys(urls).forEach(dropURL);sel=null;cWeek=null;renderAll();toast("Se borró todo");};
-async function renderAj(){applyTheme(S.settings.theme);
+$("wipe").onclick=async()=>{if(!confirmTwice($("wipe"),"Toca otra vez para borrar todo, fotos incluidas"))return;const w=S.settings.worker;S=blank();S.settings.worker=w;persist();try{await photoClear();}catch(e){}Object.keys(urls).forEach(dropURL);sel=null;cWeek=null;renderAll();toast("Se borró todo");};
+async function renderAj(){applyTheme(S.settings.theme);renderStrava();renderSync();
   $("bkInfo").textContent=S.lastBackup?"Último: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"})+". Guárdalo en mi-sistema/respaldos-entrenador":"JSON con todo menos las fotos. Guárdalo en mi-sistema/respaldos-entrenador";
   try{const k=await photoKeys();$("phInfo").textContent=k.length?k.length+(k.length===1?" foto":" fotos")+" en un .zip":"Un .zip con todas tus fotos";}catch(e){}
   try{const p=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;
     $("persistTxt").textContent=p?"Activo: iOS no borrará tus datos ni fotos":"Instala la app en tu pantalla de inicio para protegerlos. Igual exporta un respaldo cada domingo.";}catch(e){}}
 async function askPersist(){try{if(navigator.storage&&navigator.storage.persist&&!(await navigator.storage.persisted()))await navigator.storage.persist();}catch(e){}renderAj();}
 
+/* ---------- Sincronización con la nube y Strava ---------- */
+let AU=null,PEND=null,NET="ok",syncing=false,soonT=null,retryT=null,retryN=0,pairT=null;
+let ACT={runs:{},gym:{},after:0};
+const RUN_TYPES=["Run","TrailRun","VirtualRun"],GYM_TYPES=["WeightTraining","Workout"];
+const workerURL=()=>{let w=(S.settings.worker||"").trim().replace(/\/+$/,"");if(w&&!/^https?:\/\//.test(w))w="https://"+w;return w;};
+const hhmm=ts=>{const d=new Date(ts),t=d.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"});return ymd(d)===today()?t:ymd(d)===addDays(today(),-1)?"ayer "+t:d.toLocaleDateString("es-MX",{day:"numeric",month:"short"})+" "+t;};
+const pend=()=>Object.keys(SY.q).length;
+const plural=(n,a,b)=>n+" "+(n===1?a:b);
+function renderSync(){const el=$("syncBar");if(!el)return;const n=pend(),off=!navigator.onLine||NET==="off",last=SY.last?" · "+hhmm(SY.last):"";let dot,txt;
+  if(off){dot="🔴";txt="Sin conexión"+(n?" · "+plural(n,"pendiente","pendientes"):"")+last;}
+  else if(syncing){dot="🟡";txt="Sincronizando…";}
+  else if(!workerURL()||!AU){dot=n?"🟡":"⚪";txt=(n?plural(n,"pendiente","pendientes")+" · ":"")+"Conecta Strava en Ajustes";}
+  else if(n||NET==="err"){dot="🟡";txt=(n?plural(n,"pendiente","pendientes")+" de subir":"Reintentando")+last;}
+  else{dot="🟢";txt="Sincronizado"+last;}
+  el.innerHTML='<span aria-hidden="true">'+dot+'</span><span>'+esc(txt)+'</span>';el.dataset.state=off?"off":n?"pending":"ok";
+  const st=$("stSyncTxt");if(st)st.textContent=(SY.last?"Última: "+hhmm(SY.last):"Todavía no se sincroniza")+(SY.err&&NET!=="ok"?" · "+SY.err:"");}
+function syncSoon(ms){clearTimeout(soonT);soonT=setTimeout(()=>syncNow(),ms);}
+async function api(path,opt={}){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),20000);let r;
+  try{r=await fetch(workerURL()+path,{...opt,signal:ctl.signal,cache:"no-store"});}
+  catch(e){const err=new Error("sin conexión");err.offline=true;throw err;}finally{clearTimeout(tm);}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const err=new Error(r.status===401?"vuelve a conectar Strava":(j.error||j.message||"error "+r.status));err.status=r.status;throw err;}
+  return j;}
+async function token(){if(AU.expires_at*1000>Date.now()+120000)return AU.access_token;
+  const t=await api("/refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refresh_token:AU.refresh_token})});
+  Object.assign(AU,t);await kvPut("auth",AU);return AU.access_token;}
+async function pullStrava(){const tk=await token(),H={headers:{Authorization:"Bearer "+tk}};
+  const after=ACT.after?ACT.after-3*86400:Math.floor(parse(addDays(START,-120)).getTime()/1000);let newest=ACT.after||0;
+  for(let page=1;page<=10;page++){const list=await api("/strava/athlete/activities?per_page=100&page="+page+"&after="+after,H);
+    for(const a of list){const t=a.sport_type||a.type,d=String(a.start_date_local).slice(0,10);newest=Math.max(newest,Math.floor(Date.parse(a.start_date)/1000)||0);
+      if(RUN_TYPES.includes(t))ACT.runs[a.id]={id:a.id,d,name:a.name,km:+(a.distance/1000).toFixed(2),sec:a.moving_time,t};
+      else if(GYM_TYPES.includes(t))ACT.gym[a.id]={...(ACT.gym[a.id]||{}),id:a.id,d,name:a.name,sec:a.moving_time,t};}
+    if(list.length<100)break;}
+  // La lista no trae la descripción: se pide cada entrenamiento de pesas una sola vez.
+  for(const g of Object.values(ACT.gym))if(g.desc==null){try{const det=await api("/strava/activities/"+g.id,H);g.desc=det.description||"";}catch(e){if(e.offline)throw e;}}
+  ACT.after=newest;await kvPut("acts",ACT);return autoMark();}
+function byDay(o){const m={};for(const a of Object.values(o))(m[a.d]=m[a.d]||[]).push(a);return m;}
+function autoMark(){let n=0;const R=byDay(ACT.runs),G=byDay(ACT.gym);
+  for(const d in R){if(weekNo(d)<1||session(d).k!=="correr")continue;const id=R[d].map(a=>a.id).sort().join(","),g=S.days[d];
+    if(g&&(g.fin||g.auto===id))continue;const x=D(d);x.fin=true;x.src="strava";x.auto=id;
+    if(!x.km){x.km=String(tenth(R[d].reduce((s,a)=>s+a.km,0)));x.min=String(Math.round(R[d].reduce((s,a)=>s+a.sec,0)/60));}n++;}
+  for(const d in G){const k=session(d).k;if(weekNo(d)<1||(k!=="torso"&&k!=="pierna"))continue;const id=G[d].map(a=>a.id).sort().join(","),g=S.days[d];
+    if(g&&(g.fin||g.auto===id))continue;const x=D(d);x.fin=true;x.src="strava";x.auto=id;n++;}
+  return n;}
+function applyRemote(items){let ch=0;
+  for(const {k,v} of items){if(SY.q[k])continue;const j=v==null?undefined:JSON.stringify(v);if(SY.known[k]===j)continue;
+    const i=k.indexOf(":"),t=k.slice(0,i),id=k.slice(i+1);
+    if(t==="day"){if(v)S.days[id]=v;else delete S.days[id];}
+    else if(t==="body"){S.body=S.body.filter(x=>x.d!==id);if(v)S.body.push(v);S.body.sort((a,b)=>a.d<b.d?-1:1);}
+    else if(t==="menu"){if(v)S.menus[id]=v;else delete S.menus[id];}
+    else if(t==="shop"){if(v)S.shop[id]=v;else delete S.shop[id];}
+    else if(t==="prep"){if(v)S.prep[id]=v;else delete S.prep[id];}
+    else continue;
+    if(j===undefined)delete SY.known[k];else SY.known[k]=j;ch++;}
+  return ch;}
+async function syncNow(manual){
+  if(syncing)return;clearTimeout(soonT);
+  if(!navigator.onLine){NET="off";renderSync();if(manual)toast("Sin conexión. Se sube solo cuando regrese la señal.");return;}
+  if(!workerURL()||!AU||!AU.sync_key){renderSync();if(manual)toast("Primero conecta Strava en Ajustes");return;}
+  syncing=true;renderSync();let changed=0,err=null;
+  try{
+    // 1) Strava: bajar carreras y pesas, y palomear lo que ya hiciste.
+    try{changed+=await pullStrava();}catch(e){if(e.offline)throw e;err=e;}
+    track();
+    // 2) Nube: subir pendientes y bajar lo que cambió en otro lado.
+    const r=recs(),items=Object.keys(SY.q).map(k=>({k,v:k in r?r[k]:null,ts:SY.q[k]}));
+    const res=await api("/data",{method:"POST",headers:{Authorization:"Bearer "+AU.sync_key,"Content-Type":"application/json"},body:JSON.stringify({items,since:SY.cursor||0})});
+    for(const it of items)if(SY.q[it.k]===it.ts)delete SY.q[it.k]; // si cambió mientras subía, se queda pendiente
+    changed+=applyRemote(res.items||[]);SY.cursor=res.cursor||SY.cursor;
+    if(err)throw err;
+    SY.last=Date.now();SY.err="";NET="ok";retryN=0;clearTimeout(retryT);
+  }catch(e){SY.err=e.message;NET=e.offline?"off":"err";retryN++;clearTimeout(retryT);retryT=setTimeout(()=>syncNow(),Math.min(600,15*Math.pow(2,retryN))*1000);
+    if(manual)toast(e.offline?"Sin conexión. Se sube solo cuando regrese la señal.":"No se pudo sincronizar: "+e.message);}
+  finally{syncing=false;track();await saveLocal();renderSync();if(changed)renderAll();else if(!$("v-run").hidden)renderRun();}
+  if(pend()&&NET==="ok")syncSoon(1000);}
+$("syncBar").onclick=()=>syncNow(true);
+window.addEventListener("online",()=>{NET="ok";renderSync();syncNow();});
+window.addEventListener("offline",()=>{NET="off";renderSync();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){saveLocal();return;}
+  if(PEND)pollPair();if(pend()||!SY.last||Date.now()-SY.last>120000)syncNow();});
+setInterval(()=>{if(!document.hidden)syncNow();},10*60e3);
+
+/* Conectar Strava: la app abre el Worker, Strava pide permiso y la app recoge los tokens con un código de un solo uso. */
+function rand(){const a=new Uint8Array(18);crypto.getRandomValues(a);return btoa(String.fromCharCode(...a)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
+async function pollPair(){if(!PEND)return;clearTimeout(pairT);
+  if(Date.now()-PEND.t>15*60e3){PEND=null;await kvPut("pair",null);renderStrava();return;}
+  try{const r=await api("/pair?state="+encodeURIComponent(PEND.state));
+    if(r.ready){AU={access_token:r.access_token,refresh_token:r.refresh_token,expires_at:r.expires_at,athlete:r.athlete,sync_key:r.sync_key};
+      await kvPut("auth",AU);PEND=null;await kvPut("pair",null);celebrate("¡Strava conectado!");renderStrava();renderSync();syncNow();return;}}catch(e){}
+  pairT=setTimeout(pollPair,3000);}
+$("stConnect").onclick=async()=>{
+  if(AU){if(!confirmTwice($("stConnect"),"Toca otra vez para desconectar Strava"))return;AU=null;await kvPut("auth",null);renderStrava();renderSync();toast("Strava desconectado. Tus datos siguen en el celular.");return;}
+  const W=workerURL();if(!W){toast("Primero pega la dirección de tu Worker");$("stWorker").focus();return;}
+  if(!navigator.onLine){toast("Necesitas internet para conectar Strava");return;}
+  PEND={state:rand(),t:Date.now()};await kvPut("pair",PEND);renderStrava();
+  const url=W+"/login?state="+PEND.state,w=window.open(url,"_blank");if(!w)location.href=url;
+  pairT=setTimeout(pollPair,4000);};
+$("stSync").onclick=()=>syncNow(true);
+$("stWorker").addEventListener("change",async e=>{S.settings.worker=e.target.value.trim();e.target.value=workerURL();persist();renderSync();
+  if(!workerURL())return;try{const r=await api("/");toast(r.kv?"Worker listo ✓":"El Worker responde, pero le falta el KV DATOS");}catch(err){toast(err.offline?"No se pudo abrir esa dirección":"El Worker dice: "+err.message);}});
+function renderStrava(){const w=$("stWorker");if(document.activeElement!==w)w.value=workerURL();
+  $("stConnTxt").innerHTML=AU?'Desconectar Strava<small>Conectado'+(AU.athlete&&AU.athlete.nombre?" como "+esc(AU.athlete.nombre):"")+'</small>'
+    :PEND?'Esperando a Strava…<small>Autoriza en Strava y regresa aquí. Toca para reintentar.</small>':'Conectar Strava<small>Para bajar tus carreras y pesas, y respaldar en la nube</small>';}
+
+/* ---------- CORRER ---------- */
+const paceTxt=s=>Math.floor(s/60)+":"+pad(Math.round(s%60));
+const durTxt=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?h+":"+pad(m)+":"+pad(x):m+":"+pad(x);};
+function weekRunKm(n){const ws=weekStart(n),we=addDays(ws,6),R=byDay(ACT.runs);let km=0;
+  for(let i=0;i<7;i++){const d=addDays(ws,i);if(R[d])km+=R[d].reduce((s,a)=>s+a.km,0);else{const g=S.days[d];if(g&&parseFloat(g.km)>0)km+=parseFloat(g.km);}}
+  return tenth(km);}
+function renderRun(){const t=today(),cur=Math.max(1,weekNo(t)),[mie,sab]=runPlan(cur),meta=tenth(mie+sab),done=weekRunKm(cur),pct=meta?Math.min(1,done/meta):0;
+  const ws=weekStart(cur);
+  $("rWeek").innerHTML='<div class="card-h"><h2>Esta semana</h2><span class="sub">Semana '+cur+(cur===4?" · descarga":"")+'</span></div>'+
+    '<div class="wkm"><span class="big n">'+fmt1(done)+'</span><span class="of">de '+fmt1(meta)+' km</span></div>'+
+    '<div class="meter"><i style="width:'+(pct*100)+'%"></i></div>'+
+    '<p class="help" style="margin-top:10px">Miércoles '+fmt1(mie)+' km suave · sábado '+fmt1(sab)+' km largo. '+(done>=meta?"¡Meta de la semana cumplida!":"Te faltan "+fmt1(Math.max(0,meta-done))+" km.")+'</p>';
+  // Plan: semana anterior + las próximas
+  const first5=(()=>{for(let w=1;w<60;w++)if(runPlan(w)[1]>=5)return w;})(),first10=(()=>{for(let w=1;w<60;w++)if(runPlan(w)[1]>=10)return w;})();
+  let rows="";for(let w=Math.max(1,cur-1);w<=cur+5;w++){const [a,b]=runPlan(w),s0=weekStart(w),dm=addDays(s0,2),dsb=addDays(s0,5),gm=S.days[dm],gs=S.days[dsb];
+    rows+='<li class="'+(w===cur?"cur":"")+'"><span><b>S'+w+'</b><span class="dl">'+parse(s0).toLocaleDateString("es-MX",{day:"numeric",month:"short"})+(w===4?" · descarga":"")+'</span></span>'+
+      '<span class="d">mié <b>'+fmt1(a)+'</b>'+(gm&&gm.fin?CK:"")+'</span><span class="d">sáb <b>'+fmt1(b)+'</b>'+(gs&&gs.fin?CK:"")+'</span></li>';}
+  $("rPlan").innerHTML='<div class="card-h"><h2>Plan de regreso</h2><span class="sub">km por día</span></div><ul class="plan">'+rows+'</ul>'+
+    '<p class="help" style="margin-top:10px">Después de la semana 4 sube 10 % por semana. Primer sábado de 5 km: semana '+first5+' ('+parse(addDays(weekStart(first5),5)).toLocaleDateString("es-MX",{day:"numeric",month:"short"})+'). 10 km: semana '+first10+'.</p>';
+  // Últimas carreras
+  const runs=Object.values(ACT.runs).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:b.id-a.id).slice(0,12);
+  $("rList").innerHTML='<div class="card-h"><h2>Últimas carreras</h2>'+(AU?'<span class="sub">De Strava</span>':'')+'</div>'+
+    (runs.length?'<ul class="rl">'+runs.map(a=>{const p=a.km>0?a.sec/a.km:0,cls=!p?"":p<PACE_LO?"fast":p<=PACE_HI?"ok":"",lab=!p?"":p<PACE_LO?"muy rápido":p<=PACE_HI?"en zona":"suave";
+      return '<li><span class="km n">'+fmt1(a.km)+' km</span><span class="pz n '+cls+'">'+(p?paceTxt(p)+' /km':'—')+'<em>'+lab+'</em></span><small>'+esc(parse(a.d).toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"short"}))+' · '+durTxt(a.sec)+'</small></li>';}).join("")+'</ul>'
+     :'<p class="empty">'+(AU?"Todavía no hay carreras en Strava desde agosto. Corre con Strava y aparecen aquí solas.":"Conecta Strava en Ajustes y aquí aparecen tus carreras con su ritmo.")+'</p>'+(AU?'':'<button class="btn ghost sm press" data-go="aj" style="margin-top:10px;background:var(--well)">Ir a Ajustes</button>'));}
+$("v-run").addEventListener("click",e=>{if(e.target.closest("[data-go=aj]"))go("aj");});
+
+/* ---------- PESAS (Hevy → Strava) ---------- */
+// Lector de la descripción que Hevy manda a Strava. Se termina con el texto real del entrenamiento de prueba.
+function parseHevy(txt){return null;}
+function renderGym(){const el=$("pGym");const list=Object.values(ACT.gym).sort((a,b)=>a.d<b.d?1:-1);
+  let h='<div class="card-h"><h2>Pesas</h2><span class="sub">Hevy → Strava</span></div>';
+  if(!AU)h+='<p class="empty">Conecta Strava en Ajustes. Lo que anotes en Hevy llega a Strava y aquí verás tu último peso por ejercicio.</p>';
+  else if(!list.length)h+='<p class="empty">Todavía no llega ningún entrenamiento de Hevy a Strava. En Hevy: Perfil → Ajustes → Integraciones → Strava.</p>';
+  else{const parsed=list.map(a=>({a,ex:parseHevy(a.desc||"")})),ok=parsed.filter(p=>p.ex&&p.ex.length);
+    if(!ok.length){const a=list[0];h+='<p class="empty">Último: '+esc(a.name)+' · '+esc(parse(a.d).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"}))+'. El lector de pesos se activa en cuanto revisemos el texto de tu entrenamiento de prueba.</p>'+(a.desc?'<pre class="raw">'+esc(a.desc)+'</pre>':'');}
+    else{const last={},prev={};for(const p of ok)for(const e of p.ex){const top=Math.max(...e.sets.map(s=>s.kg||0));if(!last[e.n])last[e.n]={top,d:p.a.d,sets:e.sets};else if(!prev[e.n]&&p.a.d<last[e.n].d)prev[e.n]={top};}
+      h+='<ul class="gx">'+Object.keys(last).map(n=>{const L=last[n],P=prev[n],diff=P?L.top-P.top:0;
+        return '<li><span>'+esc(n)+'<small style="display:block;color:var(--ink-2);font-size:13px">'+L.sets.map(s=>(s.kg?fmt1(s.kg)+" "+(s.u||"kg"):"")+"×"+s.reps).join(" · ")+'</small></span><span class="n '+(diff>0?"up":diff<0?"dn":"")+'">'+(P?(diff>0?"▲ +"+fmt1(diff):diff<0?"▼ "+fmt1(diff):"="):"nuevo")+'</span></li>';}).join("")+'</ul>';}}
+  el.innerHTML=h;}
+
+/* ---------- Arranque: cargar de IndexedDB (y migrar lo de localStorage la primera vez) ---------- */
+async function boot(){
+  try{const [s,sy,au,pe,ac]=await Promise.all(["S","sync","auth","pair","acts"].map(k=>kvGet(k).catch(()=>null)));
+    if(s){S=norm0(s);}
+    else{let old=null;try{old=JSON.parse(localStorage.getItem(KEY));}catch(e){}if(old){S=norm0(old);S.migrado=new Date().toISOString();}}
+    if(sy)SY={...SY,...sy};AU=au||null;PEND=pe||null;if(ac)ACT={...ACT,...ac};
+  }catch(e){try{const old=JSON.parse(localStorage.getItem(KEY));if(old)S=norm0(old);}catch(_){}toast("No se pudo abrir la base de datos del celular");}
+  persist();renderAll();askPersist();syncNow();if(PEND)pollPair();}
+
 /* ---------- Navegación, aviso y confeti ---------- */
-const VIEWS={hoy:renderHoy,com:renderCom,pro:renderPro,aj:renderAj};
+const VIEWS={hoy:renderHoy,run:renderRun,com:renderCom,pro:renderPro,aj:renderAj};
 function go(v){Object.keys(VIEWS).forEach(k=>$("v-"+k).hidden=k!==v);document.querySelectorAll(".tab").forEach(t=>{if(t.dataset.v===v)t.setAttribute("aria-current","page");else t.removeAttribute("aria-current");});VIEWS[v]();window.scrollTo(0,0);}
 document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{if(t.dataset.v==="hoy")sel=null;go(t.dataset.v);}));
 let tT;function toast(m){$("toast").textContent=m;$("toast").classList.add("show");clearTimeout(tT);tT=setTimeout(()=>$("toast").classList.remove("show"),2800);}
@@ -678,8 +931,8 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&today()!=
 const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
 if(!standalone&&/iPhone|iPad/.test(navigator.userAgent))$("installTip").hidden=false;
 try{if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});}catch(e){}
-function renderAll(){applyTheme(S.settings.theme);renderHoy();renderCom();renderPro();renderAj();}
-renderAll();askPersist();
+function renderAll(){applyTheme(S.settings.theme);renderSync();renderHoy();renderRun();renderCom();renderPro();renderAj();}
+boot();
 document.addEventListener("pointerdown",askPersist,{once:true});
 })();
 </script>
