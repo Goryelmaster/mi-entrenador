@@ -354,11 +354,11 @@ const DAYKEYS=["dom","lun","mar","mie","jue","vie","sab"];
 const DAYNAME={lun:"Lunes",mar:"Martes",mie:"Miércoles",jue:"Jueves",vie:"Viernes",sab:"Sábado",dom:"Domingo"};
 const ORDER=["lun","mar","mie","jue","vie","sab","dom"];
 const PLAN={
- lun:{n:"Torso A",k:"torso",ex:[["Press de banca",4,"6-8"],["Remo con barra",4,"8"],["Press militar con mancuernas",3,"10"],["Jalón al pecho",3,"10"],["Fondos o press inclinado",3,"10"],["Curl + tríceps",2,"12"],["Plancha",3,"30 s"]]},
- mar:{n:"Pierna A + saltos",k:"pierna",ex:[["Sentadilla",4,"6-8"],["Peso muerto rumano",3,"8"],["Zancadas",3,"10 c/u"],["Pantorrilla",3,"15"],["Saltos al cajón",4,"5"],["Cuerda",3,"45 s"]]},
+ lun:{n:"Torso A",k:"torso",ex:[["Press de banca",3,"6-8","70 kg"],["Remo en polea a una mano",3,"8-10","170 lb"],["Press de hombro con mancuernas",2,"8-10","56 kg (28 c/u)"],["Jalón al pecho",2,"8-10","120 lb"],["Press de pecho iso-lateral",2,"8-10","70 kg"],["Superserie: curl con barra + tríceps en polea",2,"10-12","30 kg · 72.5 lb"]]},
+ mar:{n:"Pierna A + saltos",k:"pierna",ex:[["Hack squat",3,"6-8","80 kg"],["Peso muerto rumano",2,"8","60 kg"],["Zancadas",2,"8 c/u","28 kg (14 c/u)"],["Extensión de cuádriceps",2,"10-12","160 lb"],["Pantorrilla",2,"12"],["Saltos al cajón",4,"5","Explosivos, nunca al fallo"],["Cuerda",3,"45 s"]]},
  mie:{n:"Correr suave",k:"correr",run:"suave"},
- jue:{n:"Torso B",k:"torso",tag:"Antes de la iglesia",ex:[["Press inclinado con mancuernas",4,"8-10"],["Dominadas o jalón",4,"8"],["Remo con mancuerna",3,"10"],["Elevaciones laterales",3,"12-15"],["Face pull",3,"15"],["Martillo + press francés",2,"12"],["Plancha lateral",3,"30 s"]]},
- vie:{n:"Pierna B + agilidad",k:"pierna",ex:[["Hip thrust o peso muerto",4,"6-8"],["Prensa",3,"10-12"],["Sentadilla búlgara",3,"8 c/u"],["Curl femoral",3,"12"],["Skater jumps",3,"20 s"],["Escalera o conos",5,"rondas"]]},
+ jue:{n:"Torso B",k:"torso",tag:"Antes de la iglesia",ex:[["Press inclinado con mancuernas",3,"8-10","48 kg (24 c/u)"],["Dominadas al máximo",2,"máx","Meta: 8 limpias en abril"],["Dominadas asistidas",2,"6-8","18 kg de asistencia"],["Remo con mancuerna",2,"8-10","44 kg (22 c/u)"],["Elevaciones laterales",2,"10-12","24 kg (12 c/u)"],["Reverse fly en máquina",2,"10-12","130 lb"],["Superserie: martillo + tríceps con polea",2,"10-12","28 kg · 22.5 lb"]]},
+ vie:{n:"Pierna B + agilidad",k:"pierna",ex:[["Hip thrust en máquina",3,"6-8","80 kg"],["Prensa",2,"8-10","Fallo en la rep 10"],["Sentadilla búlgara",2,"8 c/u","Sem. 1 sin peso"],["Curl femoral",2,"10","100 lb"],["Aductor y abductor",2,"12","110 lb"],["Skater jumps",3,"20 s"],["Escalera o conos",5,"rondas"]]},
  sab:{n:"Correr largo",k:"correr",run:"largo"},
  dom:{n:"Descanso",k:"rest",tag:"Pésate y mide tu cintura en ayunas"}
 };
@@ -369,7 +369,7 @@ const half=x=>Math.round(x*2)/2;
 function runKm(w,type){if(w<=1)return 2;const base=Math.min(8,half(3*Math.pow(1.1,w-2)));return type==="largo"?Math.min(14,half(base*1.4)):base;}
 function session(d){const k=dayKey(d),p=PLAN[k],w=weekNo(d),soft=w<=1;
   const s={key:k,n:p.n,k:p.k,tag:p.tag||"",w,soft,pre:w<1};
-  if(p.ex)s.ex=p.ex.map(([n,sets,reps])=>({n,sets:soft?Math.max(2,sets-1):sets,reps}));
+  if(p.ex)s.ex=p.ex.map(([n,sets,reps,kg])=>({n,sets:soft?Math.max(2,sets-1):sets,reps,kg:kg&&soft&&/\d (kg|lb)/.test(kg)?kg+" · hoy ~30 % menos":kg}));
   if(p.run){s.km=runKm(w,p.run);s.run=p.run;}
   return s;}
 
@@ -436,7 +436,7 @@ function renderHoy(){
   const W=$("hWork");W.className="card k-"+s.k;
   if(s.ex){const done=s.ex.filter((_,i)=>g.ex&&g.ex[i]).length;
     W.innerHTML='<div class="card-h"><h2>Ejercicios</h2><span class="sub n" style="font-size:16px">'+done+' de '+s.ex.length+'</span></div><ul class="exs">'+
-      s.ex.map((e,i)=>'<li><button class="ex'+(g.ex&&g.ex[i]?" on":"")+'" data-i="'+i+'"><span><b>'+esc(e.n)+'</b></span><span class="sr">'+e.sets+'<em>×</em>'+esc(e.reps)+'</span><span class="box">'+CK+'</span></button></li>').join("")+
+      s.ex.map((e,i)=>'<li><button class="ex'+(g.ex&&g.ex[i]?" on":"")+'" data-i="'+i+'"><span><b>'+esc(e.n)+'</b>'+(e.kg?'<small>'+esc(e.kg)+'</small>':'')+'</span><span class="sr">'+e.sets+'<em>×</em>'+esc(e.reps)+'</span><span class="box">'+CK+'</span></button></li>').join("")+
       '</ul><div class="meter"><i style="width:'+(done/s.ex.length*100)+'%"></i></div><div class="apps"><button class="appbtn press" data-app="hevy">'+ICON.ext+'Abrir Hevy para anotar pesos</button></div>';}
   else if(s.km){const km=g.km||"",min=g.min||"";
     W.innerHTML='<div class="card-h"><h2>Meta de hoy</h2><span class="sub">'+(s.run==="largo"?"Sin prisa, constante":"Ritmo de plática")+'</span></div><div class="run"><span class="big n">'+String(s.km).replace(".",",")+'</span><span class="u">km</span></div>'+
