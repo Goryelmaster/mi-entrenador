@@ -894,16 +894,51 @@ $("v-run").addEventListener("click",e=>{if(e.target.closest("[data-go=aj]"))go("
 
 /* ---------- PESAS (Hevy → Strava) ---------- */
 // Lector de la descripción que Hevy manda a Strava. Se termina con el texto real del entrenamiento de prueba.
-function parseHevy(txt){return null;}
-function renderGym(){const el=$("pGym");const list=Object.values(ACT.gym).sort((a,b)=>a.d<b.d?1:-1);
+/* Formato que manda Hevy a Strava (revisado con el entrenamiento de prueba del 22 nov):
+     Logged with hevyapp.com
+     Leg Extension (Machine)
+     Set 1: 60 lbs x 10 [Warm-up]
+     Set 3: 160 lbs x 12 [Failure]
+   Un bloque por ejercicio, separado por línea en blanco. Las máquinas vienen en lbs y lo libre en kg. */
+const LB=0.45359237;
+function parseSet(t){const tag=(t.match(/\[([^\]]+)\]/)||[])[1]||"";t=t.replace(/\[[^\]]*\]/g,"");
+  const w=t.match(/([+-]?\d+(?:[.,]\d+)?)\s*(kgs?|lbs?)\b/i),r=t.match(/x\s*(\d+)/i)||t.match(/(\d+)\s*reps?\b/i),sec=t.match(/(\d+)\s*(s|sec|seg|min)\b/i);
+  if(!w&&!r&&!sec)return null;
+  const u=w?(/^l/i.test(w[2])?"lb":"kg"):"";const val=w?parseFloat(w[1].replace(",",".")):0;
+  return{w:val,u,kg:u==="lb"?val*LB:val,reps:r?+r[1]:0,sec:sec?(+sec[1])*(/min/i.test(sec[2])?60:1):0,warm:/warm|calent/i.test(tag),tag};}
+function parseHevy(txt){if(!txt)return null;const out=[];let cur=null;
+  for(let line of String(txt).replace(/\r/g,"").split("\n")){line=line.trim();
+    if(!line){cur=null;continue;}
+    if(/hevyapp\.com|^logged with/i.test(line))continue;
+    const m=line.match(/^set\s*\d+\s*:\s*(.+)$/i);
+    if(m){if(!cur){cur={n:"Ejercicio",sets:[]};out.push(cur);}const st=parseSet(m[1]);if(st)cur.sets.push(st);continue;}
+    cur={n:line,sets:[]};out.push(cur);}
+  const ex=out.filter(e=>e.sets.length);return ex.length?ex:null;}
+// Mejor serie de trabajo (sin calentamiento): más peso y, a igual peso, más reps.
+function bestSet(sets){const work=sets.filter(s=>!s.warm);const L=work.length?work:sets;
+  return L.reduce((b,s)=>!b||s.kg>b.kg+1e-6||(Math.abs(s.kg-b.kg)<1e-6&&s.reps>b.reps)?s:b,null);}
+const wTxt=s=>s.u?fmt1(s.w)+" "+s.u:"";
+const setTxt=s=>s.u?wTxt(s)+" × "+s.reps:s.reps?s.reps+" reps":s.sec?s.sec+" s":"";
+function renderGym(){const el=$("pGym");const list=Object.values(ACT.gym).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:b.id-a.id);
   let h='<div class="card-h"><h2>Pesas</h2><span class="sub">Hevy → Strava</span></div>';
   if(!AU)h+='<p class="empty">Conecta Strava en Ajustes. Lo que anotes en Hevy llega a Strava y aquí verás tu último peso por ejercicio.</p>';
   else if(!list.length)h+='<p class="empty">Todavía no llega ningún entrenamiento de Hevy a Strava. En Hevy: Perfil → Ajustes → Integraciones → Strava.</p>';
-  else{const parsed=list.map(a=>({a,ex:parseHevy(a.desc||"")})),ok=parsed.filter(p=>p.ex&&p.ex.length);
-    if(!ok.length){const a=list[0];h+='<p class="empty">Último: '+esc(a.name)+' · '+esc(parse(a.d).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"}))+'. El lector de pesos se activa en cuanto revisemos el texto de tu entrenamiento de prueba.</p>'+(a.desc?'<pre class="raw">'+esc(a.desc)+'</pre>':'');}
-    else{const last={},prev={};for(const p of ok)for(const e of p.ex){const top=Math.max(...e.sets.map(s=>s.kg||0));if(!last[e.n])last[e.n]={top,d:p.a.d,sets:e.sets};else if(!prev[e.n]&&p.a.d<last[e.n].d)prev[e.n]={top};}
-      h+='<ul class="gx">'+Object.keys(last).map(n=>{const L=last[n],P=prev[n],diff=P?L.top-P.top:0;
-        return '<li><span>'+esc(n)+'<small style="display:block;color:var(--ink-2);font-size:13px">'+L.sets.map(s=>(s.kg?fmt1(s.kg)+" "+(s.u||"kg"):"")+"×"+s.reps).join(" · ")+'</small></span><span class="n '+(diff>0?"up":diff<0?"dn":"")+'">'+(P?(diff>0?"▲ +"+fmt1(diff):diff<0?"▼ "+fmt1(diff):"="):"nuevo")+'</span></li>';}).join("")+'</ul>';}}
+  else{const ok=list.map(a=>({a,ex:parseHevy(a.desc||"")})).filter(p=>p.ex);
+    if(!ok.length){const a=list[0];h+='<p class="empty">Último: '+esc(a.name)+' · '+esc(parse(a.d).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"}))+'. No se pudieron leer las series de este entrenamiento.</p>'+(a.desc?'<pre class="raw">'+esc(a.desc)+'</pre>':'');}
+    else{const last={},prev={},order=[];
+      for(const p of ok)for(const e of p.ex){const b=bestSet(e.sets);
+        if(!last[e.n]){last[e.n]={b,d:p.a.d,id:p.a.id,sets:e.sets.filter(s=>!s.warm)};order.push(e.n);}
+        else if(!prev[e.n]&&p.a.id!==last[e.n].id)prev[e.n]={b,d:p.a.d};}
+      const lastDay=ok[0].a.d;
+      h+='<p class="help" style="margin-bottom:6px">Último peso por ejercicio contra la vez pasada. Último entrenamiento: '+esc(parse(lastDay).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"}))+'.</p>';
+      h+='<ul class="gx">'+order.map(n=>{const L=last[n],P=prev[n];let cls="",tag="nuevo";
+        if(P&&L.b&&P.b){const dk=L.b.kg-P.b.kg;
+          if(Math.abs(dk)>0.05){const d=L.b.u==="lb"?dk/LB:dk;cls=dk>0?"up":"dn";tag=(dk>0?"▲ +":"▼ ")+fmt1(Math.abs(d))+" "+(L.b.u||"kg");}
+          else if(L.b.reps!==P.b.reps){const dr=L.b.reps-P.b.reps;cls=dr>0?"up":"dn";tag=(dr>0?"▲ +":"▼ ")+dr+" reps";}
+          else tag="= igual";}
+        return '<li><span><b style="font-weight:600">'+esc(n)+'</b><small style="display:block;color:var(--ink-2);font-size:13px">'+(L.b?"Mejor serie: "+esc(setTxt(L.b)):"")+'</small><small style="display:block;color:var(--ink-2);font-size:13px">Series: '+esc(L.sets.map(setTxt).join(" · "))+'</small>'+
+          (P&&P.b?'<small style="display:block;color:var(--ink-3);font-size:12px">Vez pasada ('+esc(parse(P.d).toLocaleDateString("es-MX",{day:"numeric",month:"short"}))+'): '+esc(setTxt(P.b))+'</small>':'')+
+          '</span><span class="n '+cls+'" style="white-space:nowrap">'+tag+'</span></li>';}).join("")+'</ul>';}}
   el.innerHTML=h;}
 
 /* ---------- Arranque: cargar de IndexedDB (y migrar lo de localStorage la primera vez) ---------- */
