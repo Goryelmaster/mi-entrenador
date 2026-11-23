@@ -1,5 +1,5 @@
 // Guarda la app en el celular para que abra sin internet.
-const CACHE = "mi-entrenador-v5";
+const CACHE = "mi-entrenador-v6";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

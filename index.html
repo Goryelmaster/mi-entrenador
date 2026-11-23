@@ -813,7 +813,7 @@ function applyRemote(items){let ch=0;
     const i=k.indexOf(":"),t=k.slice(0,i),id=k.slice(i+1);
     if(t==="day"){if(v)S.days[id]=v;else delete S.days[id];}
     else if(t==="body"){S.body=S.body.filter(x=>x.d!==id);if(v)S.body.push(v);S.body.sort((a,b)=>a.d<b.d?-1:1);}
-    else if(t==="menu"){if(v)S.menus[id]=v;else delete S.menus[id];}
+    else if(t==="menu"){const old=S.menus[id];if(v&&old&&JSON.stringify((old.super||[]).map(x=>x.item))!==JSON.stringify((v.super||[]).map(x=>x.item)))delete S.shop[id];if(v)S.menus[id]=v;else delete S.menus[id];}
     else if(t==="shop"){if(v)S.shop[id]=v;else delete S.shop[id];}
     else if(t==="prep"){if(v)S.prep[id]=v;else delete S.prep[id];}
     else continue;

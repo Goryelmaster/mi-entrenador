@@ -9,6 +9,7 @@
 //   STRAVA_CLIENT_SECRET  secret  tu Client Secret (lo pegas tú, nunca va en la app)
 //   DATOS                 KV      un namespace de KV (para la copia en la nube)
 //   APP_URL               texto   (opcional) https://goryelmaster.github.io/mi-entrenador/
+//   MENU_TOKEN            secret  (opcional) contraseña para que Claude te mande el menú de la semana
 
 const STRAVA = "https://www.strava.com";
 const APP_DEFAULT = "https://goryelmaster.github.io/mi-entrenador/";
@@ -140,6 +141,20 @@ export default {
         return new Response(r.body, { status: r.status, headers: { "Content-Type": "application/json", ...CORS } });
       }
 
+      // 4) Claude manda el menú de la semana; tu cel lo recibe en la siguiente sincronización.
+      if (path === "/menu" && req.method === "POST") {
+        if (!env.DATOS || !env.MENU_TOKEN) return json({ error: "Falta MENU_TOKEN o el KV DATOS" }, 500);
+        const got = (req.headers.get("Authorization") || "").replace(/^Bearer /, "");
+        if (got.length !== env.MENU_TOKEN.length || (await hmac("x", got)) !== (await hmac("x", env.MENU_TOKEN))) return json({ error: "Contraseña inválida" }, 401);
+        let m = await req.json();
+        if (!m || !/^\d{4}-\d{2}-\d{2}$/.test(m.semana || "")) return json({ error: "Falta semana tipo 2026-11-23" }, 400);
+        const v = { semana: m.semana, presupuesto: +m.presupuesto || 0, menu: m.menu || {}, super: Array.isArray(m.super) ? m.super : [], prep: Array.isArray(m.prep) ? m.prep : [] };
+        const inbox = (await env.DATOS.get("inbox", "json")) || { items: {} };
+        inbox.items["menu:" + m.semana] = { v, ts: Date.now() };
+        await env.DATOS.put("inbox", JSON.stringify(inbox));
+        return json({ ok: true, semana: m.semana, super: v.super.length });
+      }
+
       // 3) Copia en la nube: la app manda lo pendiente y recibe lo nuevo.
       //    Cada registro tiene una llave fija (ej. "day:2026-11-25"); reenviar lo mismo nunca duplica.
       if (path === "/data" && req.method === "POST") {
@@ -155,6 +170,11 @@ export default {
         const lastSt = Math.max(0, ...Object.values(doc.items).map(x => x.st || 0));
         if (now <= lastSt) now = lastSt + 1; // el reloj del servidor siempre avanza
         let changed = false;
+        const inbox = await env.DATOS.get("inbox", "json"); // menú que mandó Claude
+        if (inbox) {
+          for (const [k, x] of Object.entries(inbox.items || {})) { doc.items[k] = { v: x.v, ts: x.ts, st: now }; changed = true; }
+          await env.DATOS.delete("inbox");
+        }
         for (const it of items) {
           if (!it || typeof it.k !== "string" || it.k.length > 80 || typeof it.ts !== "number") continue;
           const cur = doc.items[it.k];
