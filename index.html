@@ -788,12 +788,15 @@ async function token(){if(AU.expires_at*1000>Date.now()+120000)return AU.access_
   const t=await api("/refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refresh_token:AU.refresh_token})});
   Object.assign(AU,t);await kvPut("auth",AU);return AU.access_token;}
 async function pullStrava(){const tk=await token(),H={headers:{Authorization:"Bearer "+tk}};
-  const after=ACT.after?ACT.after-3*86400:Math.floor(parse(addDays(START,-120)).getTime()/1000);let newest=ACT.after||0;
+  // Siempre se revisan los últimos 30 días completos: así lo que borres en Strava también se borra aquí.
+  const win=Math.floor(Date.now()/1000)-30*86400;
+  const after=ACT.after?Math.min(ACT.after-3*86400,win):Math.floor(parse(addDays(START,-120)).getTime()/1000);let newest=ACT.after||0;const seen=new Set();let complete=false;
   for(let page=1;page<=10;page++){const list=await api("/strava/athlete/activities?per_page=100&page="+page+"&after="+after,H);
-    for(const a of list){const t=a.sport_type||a.type,d=String(a.start_date_local).slice(0,10);newest=Math.max(newest,Math.floor(Date.parse(a.start_date)/1000)||0);
-      if(RUN_TYPES.includes(t))ACT.runs[a.id]={id:a.id,d,name:a.name,km:+(a.distance/1000).toFixed(2),sec:a.moving_time,t};
-      else if(GYM_TYPES.includes(t))ACT.gym[a.id]={...(ACT.gym[a.id]||{}),id:a.id,d,name:a.name,sec:a.moving_time,t};}
-    if(list.length<100)break;}
+    for(const a of list){const t=a.sport_type||a.type,d=String(a.start_date_local).slice(0,10),ep=Math.floor(Date.parse(a.start_date)/1000)||0;newest=Math.max(newest,ep);seen.add(String(a.id));
+      if(RUN_TYPES.includes(t))ACT.runs[a.id]={id:a.id,d,ep,name:a.name,km:+(a.distance/1000).toFixed(2),sec:a.moving_time,t};
+      else if(GYM_TYPES.includes(t))ACT.gym[a.id]={...(ACT.gym[a.id]||{}),id:a.id,d,ep,name:a.name,sec:a.moving_time,t};}
+    if(list.length<100){complete=true;break;}}
+  if(complete)for(const o of [ACT.runs,ACT.gym])for(const id in o){const a=o[id],ep=a.ep||Math.floor(parse(a.d).getTime()/1000);if(ep>after+86400&&!seen.has(String(id)))delete o[id];}
   // La lista no trae la descripción: se pide cada entrenamiento de pesas una sola vez.
   for(const g of Object.values(ACT.gym))if(g.desc==null){try{const det=await api("/strava/activities/"+g.id,H);g.desc=det.description||"";}catch(e){if(e.offline)throw e;}}
   ACT.after=newest;await kvPut("acts",ACT);return autoMark();}
@@ -919,10 +922,10 @@ function bestSet(sets){const work=sets.filter(s=>!s.warm);const L=work.length?wo
   return L.reduce((b,s)=>!b||s.kg>b.kg+1e-6||(Math.abs(s.kg-b.kg)<1e-6&&s.reps>b.reps)?s:b,null);}
 const wTxt=s=>s.u?fmt1(s.w)+" "+s.u:"";
 const setTxt=s=>s.u?wTxt(s)+" × "+s.reps:s.reps?s.reps+" reps":s.sec?s.sec+" s":"";
-function renderGym(){const el=$("pGym");const list=Object.values(ACT.gym).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:b.id-a.id);
+function renderGym(){const el=$("pGym");const list=Object.values(ACT.gym).filter(a=>a.d>=START).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:b.id-a.id);
   let h='<div class="card-h"><h2>Pesas</h2><span class="sub">Hevy → Strava</span></div>';
   if(!AU)h+='<p class="empty">Conecta Strava en Ajustes. Lo que anotes en Hevy llega a Strava y aquí verás tu último peso por ejercicio.</p>';
-  else if(!list.length)h+='<p class="empty">Todavía no llega ningún entrenamiento de Hevy a Strava. En Hevy: Perfil → Ajustes → Integraciones → Strava.</p>';
+  else if(!list.length)h+='<p class="empty">'+(Object.keys(ACT.gym).length?"Aquí aparece tu progreso desde el lunes 23 de noviembre. Lo de antes (como tu entrenamiento de prueba) no cuenta.":"Todavía no llega ningún entrenamiento de Hevy a Strava. En Hevy: Perfil → Ajustes → Integraciones → Strava.")+'</p>';
   else{const ok=list.map(a=>({a,ex:parseHevy(a.desc||"")})).filter(p=>p.ex);
     if(!ok.length){const a=list[0];h+='<p class="empty">Último: '+esc(a.name)+' · '+esc(parse(a.d).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"}))+'. No se pudieron leer las series de este entrenamiento.</p>'+(a.desc?'<pre class="raw">'+esc(a.desc)+'</pre>':'');}
     else{const last={},prev={},order=[];
