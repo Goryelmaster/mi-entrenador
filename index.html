@@ -289,13 +289,14 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
       <span class="sub" id="hDate"></span>
       <span class="chip" id="hStreak"></span>
     </div>
-    <div id="hPend" hidden></div>
     <section class="hero" id="hHero"></section>
     <div class="plates" id="hPlates" role="group" aria-label="Tu semana"></div>
+    <section class="card" id="hCount"></section>
     <div class="soft" id="hSoft" hidden></div>
     <section class="card" id="hWork"></section>
     <button class="btn" id="hDone"></button>
-    <button class="btn ghost sm press" id="hMove" hidden></button>
+    <button class="btn ghost sm press" id="hShort"></button>
+    <button class="btn ghost sm press" id="hRun"></button>
     <section class="card goal k-rest" id="hGoal"></section>
     <section class="card" id="hFood"></section>
     <div class="install" id="installTip" hidden><b>Instálala en tu iPhone:</b> en Safari toca Compartir y luego “Agregar a pantalla de inicio”.</div>
@@ -305,6 +306,10 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
   <main class="view" id="v-run" hidden>
     <div class="top"><h1>Correr</h1><span class="chip">Suave <b class="n">6:30–7:00</b> /km</span></div>
     <section class="card k-correr" id="rWeek"></section>
+    <section class="card k-correr" id="rLog"><div class="card-h"><h2>Registrar carrera</h2><span class="sub">Suma a lo que ya haya ese día</span></div>
+      <div class="row2"><label class="field"><span>Km</span><input class="input n" id="rgKm" type="number" inputmode="decimal" step="0.1" placeholder="—"></label><label class="field"><span>Minutos</span><input class="input n" id="rgMin" type="number" inputmode="decimal" step="1" placeholder="—"></label></div>
+      <label class="field" style="margin-top:10px"><span>Fecha</span><input class="input" id="rgD" type="date"></label>
+      <button class="btn" id="rgBtn" style="margin-top:12px">Registrar carrera</button></section>
     <section class="card k-correr" id="rPlan"></section>
     <section class="card" id="rList"></section>
   </main>
@@ -342,7 +347,7 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
     <section class="card"><div class="card-h"><h2>Cintura</h2><span class="sub" id="pWaistNow"></span></div><div class="chart" id="chartWaist"></div></section>
     <section class="card" id="pGym"></section>
     <section class="card"><div class="card-h"><h2>Racha</h2><span class="sub" id="pStreakTxt"></span></div><div class="weeks" id="pWeeks"></div>
-      <p class="help" style="margin-top:10px">Una semana cuenta cuando haces al menos 3 sesiones (lunes a sábado).</p></section>
+      <p class="help" style="margin-top:10px">Una semana cuenta cuando haces al menos 2 sesiones de fuerza (lunes a domingo).</p></section>
     <section class="card"><div class="card-h"><h2>Fotos por semana</h2></div><div class="gal" id="pGal"></div></section>
     <section class="card" id="pCmpCard"><div class="card-h"><h2>Antes y después</h2></div>
       <div class="row2" style="margin-bottom:12px"><select class="input" id="cmpA" aria-label="Antes"></select><select class="input" id="cmpB" aria-label="Después"></select></div>
@@ -359,6 +364,14 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
           <input class="input" id="stWorker" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://mi-entrenador.tu-nombre.workers.dev"></label>
         <button class="row" id="stConnect"><span id="stConnTxt">Conectar Strava</span><span class="go">›</span></button>
         <button class="row" id="stSync"><span>Sincronizar ahora<small id="stSyncTxt"></small></span><span class="go">›</span></button>
+      </div>
+    </section>
+    <section><h2 style="margin-bottom:10px">Comida</h2>
+      <div class="list">
+        <label class="row col"><span>Día de súper<small>Ese día Hoy te avisa. De jueves a domingo, el menú cambia a la semana siguiente desde ese día.</small></span>
+          <select class="input" id="sSuper"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="0">Domingo</option></select></label>
+        <div class="row col"><span>Días de meal prep<small>Toca los días que cocinas por adelantado</small></span>
+          <div class="days" id="sPrep"><button class="day" data-n="1">Lu</button><button class="day" data-n="2">Ma</button><button class="day" data-n="3">Mi</button><button class="day" data-n="4">Ju</button><button class="day" data-n="5">Vi</button><button class="day" data-n="6">Sá</button><button class="day" data-n="0">Do</button></div></div>
       </div>
     </section>
     <section><h2 style="margin-bottom:10px">Respaldo</h2>
@@ -424,53 +437,64 @@ const PLAN={
  lun:{n:"Torso A",k:"torso",ex:[["Press de banca",3,"6-8","70 kg"],["Remo en polea a una mano",3,"8-10","170 lb"],["Press de hombro con mancuernas",2,"8-10","56 kg (28 c/u)"],["Jalón al pecho",2,"8-10","120 lb"],["Press de pecho iso-lateral",2,"8-10","70 kg"],["Superserie: curl con barra + tríceps en polea",2,"10-12","30 kg · 72.5 lb"]]},
  mar:{n:"Pierna A + saltos",k:"pierna",ex:[["Hack squat",3,"6-8","80 kg"],["Peso muerto rumano",2,"8","60 kg"],["Zancadas",2,"8 c/u","28 kg (14 c/u)"],["Extensión de cuádriceps",2,"10-12","160 lb"],["Pantorrilla",2,"12"],["Saltos al cajón",4,"5","Explosivos, nunca al fallo"],["Cuerda",3,"45 s"]]},
  mie:{n:"Correr suave",k:"correr",run:"suave"},
- jue:{n:"Torso B",k:"torso",tag:"Antes de la iglesia",ex:[["Press inclinado con mancuernas",3,"8-10","48 kg (24 c/u)"],["Dominadas al máximo",2,"máx","Meta: 8 limpias en abril"],["Dominadas asistidas",2,"6-8","18 kg de asistencia"],["Remo con mancuerna",2,"8-10","44 kg (22 c/u)"],["Elevaciones laterales",2,"10-12","24 kg (12 c/u)"],["Reverse fly en máquina",2,"10-12","130 lb"],["Superserie: martillo + tríceps con polea",2,"10-12","28 kg · 22.5 lb"]]},
+ jue:{n:"Torso B",k:"torso",ex:[["Press inclinado con mancuernas",3,"8-10","48 kg (24 c/u)"],["Dominadas al máximo",2,"máx","Meta: 8 limpias en abril"],["Dominadas asistidas",2,"6-8","18 kg de asistencia"],["Remo con mancuerna",2,"8-10","44 kg (22 c/u)"],["Elevaciones laterales",2,"10-12","24 kg (12 c/u)"],["Reverse fly en máquina",2,"10-12","130 lb"],["Superserie: martillo + tríceps con polea",2,"10-12","28 kg · 22.5 lb"]]},
  vie:{n:"Pierna B + agilidad",k:"pierna",ex:[["Hip thrust en máquina",3,"6-8","80 kg"],["Prensa",2,"8-10","Fallo en la rep 10"],["Sentadilla búlgara",2,"8 c/u","Sem. 1 sin peso"],["Curl femoral",2,"10","100 lb"],["Aductor y abductor",2,"12","110 lb"],["Skater jumps",3,"20 s"],["Escalera o conos",5,"rondas"]]},
  sab:{n:"Correr largo",k:"correr",run:"largo"},
  dom:{n:"Descanso",k:"rest",tag:"Pésate y mide tu cintura en ayunas"}
+};
+const ROT=["lun","mar","jue","vie"]; // Torso A → Pierna A + saltos → Torso B → Pierna B + agilidad (ids de PLAN, sin días fijos)
+/* Versión de 45 min: cuerpo completo de 5 ejercicios por sesión de ROT, con los mismos ejercicios y cargas de PLAN. */
+const FULL45={
+ lun:[["Press de banca",3,"6-8","70 kg"],["Remo en polea a una mano",3,"8-10","170 lb"],["Hack squat",3,"6-8","80 kg"],["Peso muerto rumano",2,"8","60 kg"],["Superserie: curl con barra + tríceps en polea",2,"10-12","30 kg · 72.5 lb"]],
+ mar:[["Saltos al cajón",3,"5","Explosivos, nunca al fallo"],["Hack squat",3,"6-8","80 kg"],["Press de pecho iso-lateral",2,"8-10","70 kg"],["Jalón al pecho",2,"8-10","120 lb"],["Peso muerto rumano",2,"8","60 kg"]],
+ jue:[["Press inclinado con mancuernas",3,"8-10","48 kg (24 c/u)"],["Dominadas asistidas",2,"6-8","18 kg de asistencia"],["Prensa",2,"8-10","Fallo en la rep 10"],["Curl femoral",2,"10","100 lb"],["Superserie: martillo + tríceps con polea",2,"10-12","28 kg · 22.5 lb"]],
+ vie:[["Hip thrust en máquina",3,"6-8","80 kg"],["Remo con mancuerna",2,"8-10","44 kg (22 c/u)"],["Prensa",2,"8-10","Fallo en la rep 10"],["Elevaciones laterales",2,"10-12","24 kg (12 c/u)"],["Skater jumps",3,"20 s"]]
 };
 const weekNo=d=>Math.floor((parse(d)-parse(START))/(7*864e5))+1;
 const weekStart=n=>addDays(START,(n-1)*7);
 const dayKey=d=>DAYKEYS[parse(d).getDay()];
 const half=x=>Math.round(x*2)/2;
-/* Plan de regreso a correr: [miércoles, sábado] en km. Semana 4 es de descarga; luego +10 % por semana. */
+/* Plan de regreso a correr: [carrera 1, carrera 2] en km por semana (sin día fijo). Semana 4 es de descarga; luego +10 % por semana. */
 const RUN_PLAN={1:[2,2],2:[2.5,3],3:[3,3.5],4:[2.5,3]};
 const tenth=x=>Math.round(x*10)/10;
 function runPlan(w){if(w<1)return[0,0];if(RUN_PLAN[w])return RUN_PLAN[w];const f=Math.pow(1.1,w-4);return[Math.min(6,tenth(3*f)),Math.min(10,tenth(3.5*f))];}
 function runKm(w,type){return runPlan(w)[type==="largo"?1:0];}
 const PACE_LO=390,PACE_HI=420; // 6:30 y 7:00 min/km en segundos
-function session(d,slot){const k=slot||dayKey(d),p=PLAN[k],w=weekNo(d),soft=w<=1;
-  const s={key:k,n:p.n,k:p.k,tag:p.tag||"",w,soft,pre:w<1};
-  if(p.ex)s.ex=p.ex.map(([n,sets,reps,kg])=>({n,sets:soft?Math.max(2,sets-1):sets,reps,kg:kg&&soft&&/\d (kg|lb)/.test(kg)?kg+" · hoy ~30 % menos":kg}));
+function session(d,k,corta){const p=PLAN[k],w=weekNo(d),soft=w<=1,sh=!!corta&&!!FULL45[k],src=sh?FULL45[k]:p.ex;
+  const s={key:k,n:p.n+(sh?" · 45 min":""),k:p.k,tag:p.tag||"",w,soft,pre:w<1};
+  if(src)s.ex=src.map(([n,sets,reps,kg])=>({n,sets:soft?Math.max(2,sets-1):sets,reps,kg:kg&&soft&&/\d (kg|lb)/.test(kg)?kg+" · hoy ~30 % menos":kg}));
   if(p.run){s.km=runKm(Math.max(1,w),p.run);s.run=p.run;}
   return s;}
-/* Asignación de sesiones: cada sesión (lun..sab) vive en su fecha natural salvo que se haya movido o saltado. */
-const SLOTS=["lun","mar","mie","jue","vie","sab"];
-const sn=k=>PLAN[k].n.split(" + ")[0];
-const wkRec=n=>S.semanas[n]||(S.semanas[n]={asg:{},skip:{},cerrada:false});
-const natDate=(n,k)=>addDays(weekStart(n),SLOTS.indexOf(k));
-const slotDate=(n,k)=>{const w=S.semanas[n];return(w&&w.asg&&w.asg[k])||natDate(n,k);};
-const isSkip=(n,k)=>{const w=S.semanas[n];return!!(w&&w.skip&&w.skip[k]);};
-const doneOn=(d,k)=>{const g=S.days[d];return!!(g&&g.fin&&(g.ses?g.ses===k:dayKey(d)===k));};
-const slotDone=(n,k)=>doneOn(slotDate(n,k),k);
-function slotsOn(d){const n=weekNo(d);if(n<1)return dayKey(d)==="dom"?[]:[dayKey(d)];return SLOTS.filter(k=>!isSkip(n,k)&&slotDate(n,k)===d);}
-/* Saltada solo por cierre de semana: si llega tarde (Strava o la palomeas), se reabre y cuenta. */
-const cerrSkip=(n,k)=>{if(!isSkip(n,k))return false;const c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);return!!(c&&c.motivo==="cierre de semana");};
-const slotsFor=d=>{const n=weekNo(d),a=slotsOn(d);return n<1?a:a.concat(SLOTS.filter(k=>cerrSkip(n,k)&&slotDate(n,k)===d));};
-function reopen(n,k){if(!cerrSkip(n,k))return;delete wkRec(n).skip[k];const c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);c.estado="hecha";delete c.motivo;}
-const cs=d=>{const k=slotsFor(d)[0]||null;return{slot:k,s:session(d,k||"dom")};};
+/* Rotación: la siguiente sesión se DERIVA del historial (la última de fuerza terminada antes de ese día); no se guarda ningún puntero. */
+const isStr=k=>ROT.includes(k);
+const mon=d=>addDays(d,-((parse(d).getDay()+6)%7));
+const strDone=d=>{const g=S.days[d];return!!(g&&g.fin&&isStr(g.ses));};
+const strWeek=ws=>{let c=0;for(let i=0;i<7;i++)if(strDone(addDays(ws,i)))c++;return c;};
+function nextSes(d){let b=null;for(const k in S.days)if(k<d&&strDone(k)&&(!b||k>b))b=k;return b?ROT[(ROT.indexOf(S.days[b].ses)+1)%ROT.length]:ROT[0];}
+const sesId=d=>strDone(d)?S.days[d].ses:nextSes(d);
+const cs=d=>session(d,sesId(d),!!(S.days[d]&&S.days[d].corta));
+/* Comida: día de súper y días de meal prep (0 = domingo … 6 = sábado) */
+const DN=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const superDay=()=>{const n=S.settings.superDay;return Number.isInteger(n)&&n>=0&&n<=6?n:0;};
+const prepDays=()=>Array.isArray(S.settings.prepDays)?S.settings.prepDays:[0,3];
+const cap=x=>x[0].toUpperCase()+x.slice(1);
+function prepTxt(){const p=prepDays().slice().sort((a,b)=>(a+6)%7-(b+6)%7).map(n=>DN[n]);
+  return(p.length?cap(p.length===1?p[0]+" es día":p.slice(0,-1).join(", ")+" y "+p[p.length-1]+" son días")+" de meal prep.":"No elegiste días de meal prep.")+" El súper es el "+DN[superDay()]+".";}
 
 /* ---------- Datos: todo en IndexedDB de este celular ---------- */
 const KEY="mi-entrenador:v1"; // versión vieja en localStorage (se deja intacta como respaldo)
 const WORKER_DEFAULT="";
-const blank=()=>({version:2,days:{},menus:{},shop:{},prep:{},body:[],semanas:{},cambios:[],settings:{theme:"auto",worker:WORKER_DEFAULT},lastBackup:null});
-/* Migración v1 → v2: guarda copia intacta en kv "S_backup_v1" (si no hay una) y solo AGREGA campos (ses, semanas, cambios, version). */
+const blank=()=>({version:3,days:{},menus:{},shop:{},prep:{},body:[],semanas:{},cambios:[],settings:{theme:"auto",worker:WORKER_DEFAULT,superDay:0,prepDays:[0,3]},lastBackup:null});
+/* Migración v1/v2 → v3: guarda copia intacta en kv "S_backup_v1" (si no hay una) y solo AGREGA campos (ses, semanas, cambios, settings.superDay/prepDays, version). */
 function norm0(x){const old=!(x&&x.version),o={...blank(),...x,settings:{...blank().settings,...((x&&x.settings)||{})}};
   if(old){
     if(x&&x.days&&Object.keys(x.days).length){const raw=JSON.parse(JSON.stringify(x));kvGet("S_backup_v1").then(v=>{if(!v)kvPut("S_backup_v1",raw);}).catch(()=>{});}
     for(const d in o.days){const g=o.days[d];if(g&&g.fin&&!g.ses&&/^\d{4}-\d\d-\d\d$/.test(d)){const k=dayKey(d);if(k!=="dom")g.ses=k;}}
-    o.semanas={};o.cambios=[];o.version=2;}
+    o.semanas={};o.cambios=[];}
   else{if(!o.semanas||typeof o.semanas!=="object")o.semanas={};if(!Array.isArray(o.cambios))o.cambios=[];}
+  const st=o.settings;if(!Number.isInteger(st.superDay)||st.superDay<0||st.superDay>6)st.superDay=0;
+  if(!Array.isArray(st.prepDays))st.prepDays=[0,3];
+  o.version=Math.max(3,+o.version||0);
   return o;}
 let S=blank(),ready=false;
 const D=d=>S.days[d]||(S.days[d]={ex:{},fin:false,km:"",min:""});
@@ -520,75 +544,57 @@ const urls={};async function photoURL(k){if(urls[k])return urls[k];const b=await
 function dropURL(k){if(urls[k]){URL.revokeObjectURL(urls[k]);delete urls[k];}}
 
 /* ---------- Racha ---------- */
-function weekCount(n){return SLOTS.filter(k=>slotDone(n,k)).length;}
-function streak(){const cur=weekNo(today());if(cur<1)return 0;let s=weekCount(cur)>=3?1:0;for(let n=cur-1;n>=1;n--){if(weekCount(n)>=3)s++;else break;}return s;}
+function weekCount(n){return strWeek(weekStart(n));} // solo sesiones de fuerza (ses en ROT); las semanas viejas de correr no cuentan
+function streak(){const cur=weekNo(today());if(cur<1)return 0;let s=weekCount(cur)>=2?1:0;for(let n=cur-1;n>=1;n--){if(weekCount(n)>=2)s++;else break;}return s;}
 const semanas=n=>n===1?"1 semana":n+" semanas";
 
 /* ---------- Menú ---------- */
 const norm=s=>String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").slice(0,3);
 const MEALS=[["desayuno","Desayuno"],["comida","Comida"],["cena","Cena"],["snack","Snack"]];
 function menuFor(d){const ks=Object.keys(S.menus).sort();let best=null;for(const k of ks){if(k<=d&&d<addDays(k,7))best=k;}return best;}
-function latestMenu(){const ks=Object.keys(S.menus).sort();if(!ks.length)return null;const t=today();const cur=menuFor(t);
-  const future=ks.filter(k=>k>t);return future.length&&parse(t).getDay()===6||future.length&&parse(t).getDay()===0?future[0]:cur||ks[ks.length-1];}
+function latestMenu(){const ks=Object.keys(S.menus).sort();if(!ks.length)return null;const t=today(),cur=menuFor(t),sd=superDay();
+  const future=ks.filter(k=>k>t),nx=(sd>=4||sd===0)&&(parse(t).getDay()+6)%7>=(sd+6)%7; // jueves-domingo: desde el día de súper pasa al menú de la semana siguiente
+  return future.length&&nx?future[0]:cur||ks[ks.length-1];}
 function mealsOf(m,dk){const menu=(S.menus[m]||{}).menu||{};for(const k in menu)if(norm(k)===dk)return menu[k];return null;}
 
 /* ---------- HOY ---------- */
 let sel=null;
 function renderHoy(){
-  if(closeWeeks())persist();
-  const t=today();if(!sel)sel=t;const c0=cs(sel),s=c0.s,slot=c0.slot,wn=weekNo(sel),g=S.days[sel]||{ex:{},fin:false},isToday=sel===t,free=!slot&&!s.pre&&dayKey(sel)!=="dom";
-  if(free)s.tag="Hoy no tienes sesión";
+  const t=today();if(!sel)sel=t;const s=cs(sel),g=S.days[sel]||{ex:{},fin:false},isToday=sel===t,done=strDone(sel),dow=parse(sel).getDay();
   const dt=parse(t);
   $("hDate").textContent=dt.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
   const st=streak();$("hStreak").innerHTML='Racha <b class="n">'+st+'</b>';
-  const when=isToday?(s.pre?"Hoy · empiezas mañana":"Hoy · semana "+s.w):parse(sel).toLocaleDateString("es-MX",{weekday:"long",day:"numeric"})+(s.w>=1?" · semana "+s.w:"");
+  const notes=[];if(isToday){if(dow===0)notes.push("Pésate y mide tu cintura en ayunas");if(dow===superDay())notes.push("Hoy toca súper");if(prepDays().includes(dow))notes.push("Hoy toca meal prep");}
+  const when=done?(isToday?"Hecha hoy":"Hecha el "+parse(sel).toLocaleDateString("es-MX",{weekday:"long",day:"numeric"})):"Siguiente sesión:";
   $("hHero").className="hero k-"+s.k;
-  $("hHero").innerHTML='<p class="when">'+esc(when)+'</p><h1>'+esc(s.n)+'</h1>'+(s.tag?'<p class="tag">'+esc(s.tag)+'</p>':'')+(slot&&wn>=1&&slotDate(wn,slot)!==natDate(wn,slot)?'<p class="tag"><span class="chip">Movida del '+DAYNAME[slot].toLowerCase()+'</span></p>':'')+(g.fin&&g.src==="strava"?'<p class="tag">✓ Llegó desde Strava</p>':'');
-  renderGoal();renderPend();
-  // Tira de la semana (lunes a domingo de la semana del día elegido)
-  const wk=Math.max(1,weekNo(sel)),ws=weekStart(wk);
-  let ph="";for(let i=0;i<7;i++){const d=addDays(ws,i),dk=dayKey(d);let k=cs(d).slot,sk=!!k&&isSkip(wk,k);
-    if(!k&&dk!=="dom"){const q=SLOTS.find(x=>isSkip(wk,x)&&slotDate(wk,x)===d);if(q){k=q;sk=true;}}
-    const ss=session(d,k||"dom"),dn=!!k&&!sk&&doneOn(d,k);
-    const size=ss.k==="rest"?"sm":ss.k==="correr"?"mid":"big";
-    ph+='<button class="plate press '+size+' k-'+ss.k+(dn?" done":"")+(sk?" skip":"")+(d===t?" today":"")+'" data-d="'+d+'" aria-pressed="'+(d===sel)+'" aria-label="'+DAYNAME[dk]+': '+esc(ss.n)+(sk?", saltada":dn?", hecho":"")+'"><i></i><span>'+DAYNAME[dk][0]+'</span></button>';}
+  $("hHero").innerHTML='<p class="when">'+esc(when)+'</p><h1>'+esc(s.n)+'</h1><p class="tag">'+(s.pre?"Antes de arrancar":"Semana "+s.w)+(g.corta?" · versión de 45 min":"")+'</p>'+(done&&g.src==="strava"?'<p class="tag">✓ Llegó desde Strava</p>':'')+notes.map(n=>'<p class="tag">'+esc(n)+'</p>').join("");
+  // Contador semanal de fuerza (lunes a domingo): meta mínima 2
+  const c=strWeek(mon(t));
+  $("hCount").innerHTML='<div class="card-h"><h2>Esta semana</h2><span class="sub n" style="font-size:16px">'+c+"/2 sesiones de fuerza"+(c>=3?" · +"+(c-2)+" extra":c===2?" · meta cumplida":"")+'</span></div><div class="meter"><i style="width:'+Math.min(100,c/2*100)+'%"></i></div>';
+  // Tira de la semana: fuerza hecha (grande) y carreras (mediana)
+  const ws=mon(sel);let ph="";
+  for(let i=0;i<7;i++){const d=addDays(ws,i),dk=dayKey(d),gd=S.days[d],sd=strDone(d),rn=!sd&&!!gd&&parseFloat(gd.km)>0,k=sd?PLAN[gd.ses].k:rn?"correr":"rest";
+    ph+='<button class="plate press '+(sd?"big":rn?"mid":"sm")+' k-'+k+(sd||rn?" done":"")+(d===t?" today":"")+'" data-d="'+d+'" aria-pressed="'+(d===sel)+'" aria-label="'+DAYNAME[dk]+': '+(sd?esc(PLAN[gd.ses].n)+", hecho":rn?"carrera":"sin sesión")+'"><i></i><span>'+DAYNAME[dk][0]+'</span></button>';}
   $("hPlates").innerHTML=ph;
   // Semana de regreso
-  $("hSoft").hidden=!(s.soft&&!s.pre&&s.k!=="rest");
-  if(s.soft)$("hSoft").innerHTML=s.k==="correr"?'<div><b>Semana de regreso.</b> Solo 2 km a ritmo de plática. Si te cuesta hablar, baja el paso o camina un minuto.</div>':'<div><b>Semana de regreso.</b> Una serie menos y peso ligero, como 60 % de lo que movías. Termina cada serie sintiendo que podías hacer 3 o 4 más.</div>';
-  // Bloque de trabajo
-  const W=$("hWork");W.className="card k-"+s.k;
-  if(s.ex){const done=s.ex.filter((_,i)=>g.ex&&g.ex[i]).length;
-    W.innerHTML='<div class="card-h"><h2>Ejercicios</h2><span class="sub n" style="font-size:16px">'+done+' de '+s.ex.length+'</span></div><ul class="exs">'+
-      s.ex.map((e,i)=>'<li><button class="ex'+(g.ex&&g.ex[i]?" on":"")+'" data-i="'+i+'"><span><b>'+esc(e.n)+'</b>'+(e.kg?'<small>'+esc(e.kg)+'</small>':'')+'</span><span class="sr">'+e.sets+'<em>×</em>'+esc(e.reps)+'</span><span class="box">'+CK+'</span></button></li>').join("")+
-      '</ul><div class="meter"><i style="width:'+(done/s.ex.length*100)+'%"></i></div><div class="apps"><button class="appbtn press" data-app="hevy">'+ICON.ext+'Abrir Hevy para anotar pesos</button></div>';}
-  else if(s.km){const km=g.km||"",min=g.min||"";
-    W.innerHTML='<div class="card-h"><h2>Meta de hoy</h2><span class="sub">'+(s.run==="largo"?"Sin prisa, constante":"Ritmo de plática")+'</span></div><div class="run"><span class="big n">'+String(s.km).replace(".",",")+'</span><span class="u">km</span></div>'+
-      '<div class="row2" style="margin-top:14px"><label class="field"><span>Km hechos</span><input class="input n" id="rKm" type="number" inputmode="decimal" step="0.1" value="'+esc(km)+'" placeholder="—"></label><label class="field"><span>Minutos</span><input class="input n" id="rMin" type="number" inputmode="decimal" step="1" value="'+esc(min)+'" placeholder="—"></label></div>'+
-      '<p class="pace" id="rPace" style="margin:10px 0 0"></p><div class="apps"><button class="appbtn press" data-app="strava">'+ICON.ext+'Abrir Strava</button></div>';
-    paintPace();}
-  else if(free){W.innerHTML='<div class="card-h"><h2>Día libre</h2></div><p class="empty">No hay sesión este día: la moviste a otro o la saltaste.</p>';}
-  else{W.innerHTML='<div class="card-h"><h2>'+(s.pre?"Antes de arrancar":"Domingo de registro")+'</h2></div><p class="empty" style="margin-bottom:12px">'+(s.pre?"Toma hoy tu registro inicial: peso en ayunas, cintura y una foto. Así vas a ver el cambio desde el día uno.":"Peso en ayunas, cintura y foto frente al espejo. Hoy también toca meal prep.")+'</p><button class="btn ghost sm press" id="goReg" style="background:var(--well)">Hacer registro</button>';}
+  $("hSoft").hidden=!(s.soft&&!s.pre);
+  if(s.soft)$("hSoft").innerHTML='<div><b>Semana de regreso.</b> Una serie menos y peso ligero, como 60 % de lo que movías. Termina cada serie sintiendo que podías hacer 3 o 4 más.</div>';
+  // Bloque de trabajo (la versión de 45 min guarda sus checks en exc, para no chocar con ex)
+  const W=$("hWork");W.className="card k-"+s.k;const ck=(g.corta?g.exc:g.ex)||{},nd=s.ex.filter((_,i)=>ck[i]).length;
+  W.innerHTML='<div class="card-h"><h2>Ejercicios</h2><span class="sub n" style="font-size:16px">'+nd+' de '+s.ex.length+'</span></div><ul class="exs">'+
+    s.ex.map((e,i)=>'<li><button class="ex'+(ck[i]?" on":"")+'" data-i="'+i+'"><span><b>'+esc(e.n)+'</b>'+(e.kg?'<small>'+esc(e.kg)+'</small>':'')+'</span><span class="sr">'+e.sets+'<em>×</em>'+esc(e.reps)+'</span><span class="box">'+CK+'</span></button></li>').join("")+
+    '</ul><div class="meter"><i style="width:'+(nd/s.ex.length*100)+'%"></i></div><div class="apps"><button class="appbtn press" data-app="hevy">'+ICON.ext+'Abrir Hevy para anotar pesos</button></div>';
   // Comida
   const m=menuFor(sel),dk=dayKey(sel),ml=m&&mealsOf(m,dk);
   $("hFood").innerHTML='<div class="card-h"><h2>Comida de '+(isToday?"hoy":DAYNAME[dk].toLowerCase())+'</h2>'+(ml?'<button class="link" data-go="com">Ver semana</button>':'')+'</div>'+
     (ml?'<div class="meals">'+MEALS.filter(([k])=>ml[k]).map(([k,l])=>'<div class="meal"><span>'+l+'</span><div>'+esc(ml[k])+'</div></div>').join("")+'</div>'
-       :'<p class="empty">Todavía no hay menú para este día. El sábado pega el JSON que te da Claude en la pestaña Comida.</p><button class="btn ghost sm press" data-go="com" style="margin-top:10px;background:var(--well)">Ir a Comida</button>');
-  // Botón terminé
-  const B=$("hDone");B.hidden=s.k==="rest";B.className="btn k-"+s.k+(g.fin?" done":"");
-  B.innerHTML=g.fin?CK.replace("<svg>",'<svg width="22" height="22">')+(g.src==="strava"?" Hecha · Strava":" Sesión hecha"):"Terminé ✓";
-  const canMove=isToday&&!!slot&&!g.fin&&wn>=1&&dayKey(sel)!=="dom";
-  $("hMove").hidden=!canMove;if(canMove)$("hMove").textContent=dayKey(sel)==="sab"?"No pude hoy → saltar":"No pude hoy → pasar a mañana";
+       :'<p class="empty">Todavía no hay menú para este día. Pega el JSON que te da Claude en la pestaña Comida.</p><button class="btn ghost sm press" data-go="com" style="margin-top:10px;background:var(--well)">Ir a Comida</button>');
+  // Botones
+  const B=$("hDone");B.className="btn k-"+s.k+(done?" done":"");
+  B.innerHTML=done?CK.replace("<svg>",'<svg width="22" height="22">')+(g.src==="strava"?" Hecha · Strava":" Sesión hecha"):"Terminé ✓";
+  $("hShort").hidden=done;$("hShort").textContent=g.corta?"Volver a la sesión completa":"Hoy solo tengo 45 min";
+  const wr=weekRunKm(Math.max(1,weekNo(t)));$("hRun").textContent="Registrar carrera"+(wr>0?" · "+fmt1(wr)+" km esta semana":"");
 }
-/* Sesiones pendientes de días anteriores de esta semana: no se mueven solas, tú decides. */
-function pendList(){const t=today(),n=weekNo(t);if(n<1||(S.semanas[n]&&S.semanas[n].cerrada))return[];
-  return SLOTS.filter(k=>slotDate(n,k)<t&&!isSkip(n,k)&&!slotDone(n,k));}
-function renderPend(){const P=$("hPend"),pl=sel===today()?pendList():[],n=weekNo(today());P.hidden=!pl.length;
-  P.innerHTML=pl.map(k=>'<section class="card pend k-'+PLAN[k].k+'"><div class="card-h"><h2>Pendiente · del '+DAYNAME[dayKey(slotDate(n,k))].toLowerCase()+'</h2><span class="sub">'+esc(sn(k))+'</span></div>'+
-    '<div class="row2"><button class="btn sm press" data-pk="'+k+'" data-a="hoy">Hacerla hoy</button><button class="btn ghost sm press" data-pk="'+k+'" data-a="skip">Saltarla</button></div></section>').join("");}
-$("hPend").addEventListener("click",e=>{const b=e.target.closest("[data-pk]");if(!b)return;const k=b.dataset.pk,n=weekNo(today());
-  if(b.dataset.a==="hoy"){mover(n,k,today());return;}
-  if(!confirmTwice(b,"Toca otra vez para saltar esa sesión"))return;skipSlot(n,k);persist();renderHoy();toast("Sesión saltada");});
 const fmt1=x=>String(+(+x).toFixed(1)).replace(".",",");
 function renderGoal(){const t=today(),kgs=S.body.filter(r=>r.kg>0),first=kgs[0],last=kgs[kgs.length-1];
   const ws=weekStart(Math.max(1,weekNo(t))),we=addDays(ws,6),wk=kgs.filter(r=>r.d>=ws&&r.d<=we).pop();
@@ -601,75 +607,26 @@ function renderGoal(){const t=today(),kgs=S.body.filter(r=>r.kg>0),first=kgs[0],
       '<div class="foot"><span>Empezaste en '+fmt1(first.kg)+' kg</span><span>'+(last.kg<=GOAL?"¡Meta lograda!":"Faltan "+fmt1(last.kg-GOAL)+" kg · "+Math.round(pct*100)+" %")+'</span></div>'
      :'<p class="empty">Registra tu peso el domingo en Progreso y aquí verás tu avance hacia '+GOAL+' kg.</p>');}
 const ICON={ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'};
-function paintPace(){const g=S.days[sel]||{},el=$("rPace");if(!el)return;const km=parseFloat(g.km),mn=parseFloat(g.min);
-  if(km>0&&mn>0){const p=mn/km,mm=Math.floor(p),ss=Math.round((p-mm)*60);el.textContent="Ritmo: "+mm+":"+pad(ss%60)+" min/km";}else el.textContent="";}
-$("hPlates").addEventListener("click",e=>{const b=e.target.closest(".plate");if(!b)return;sel=b.dataset.d;renderHoy();});
+$("hPlates").addEventListener("click",e=>{const b=e.target.closest(".plate");if(!b)return;const d=b.dataset.d;if(strDone(d)||d===today()){sel=d;renderHoy();}});
 $("hWork").addEventListener("click",e=>{
-  const x=e.target.closest(".ex");if(x){const g=D(sel),i=x.dataset.i;g.ex[i]=!g.ex[i];persist();
-    x.classList.toggle("on",!!g.ex[i]);const s=cs(sel).s,n=s.ex.filter((_,j)=>g.ex[j]).length;
+  const x=e.target.closest(".ex");if(x){const g=D(sel),f=g.corta?"exc":"ex",i=x.dataset.i;g[f]=g[f]||{};g[f][i]=!g[f][i];persist();
+    x.classList.toggle("on",!!g[f][i]);const s=cs(sel).s,n=s.ex.filter((_,j)=>g[f][j]).length;
     $("hWork").querySelector(".card-h .sub").textContent=n+" de "+s.ex.length;$("hWork").querySelector(".meter i").style.width=(n/s.ex.length*100)+"%";
-    if(n===s.ex.length&&!g.fin)toast("Todo palomeado. Toca “Terminé ✓” para sumarlo a tu racha.");return;}
-  const a=e.target.closest("[data-app]");if(a){openApp(a.dataset.app);return;}
-  if(e.target.closest("#goReg"))go("pro");});
-$("hWork").addEventListener("input",e=>{if(e.target.id==="rKm"||e.target.id==="rMin"){const g=D(sel);g[e.target.id==="rKm"?"km":"min"]=e.target.value;persist();paintPace();}});
+    if(n===s.ex.length&&!strDone(sel))toast("Todo palomeado. Toca “Terminé ✓” para sumarlo a tu racha.");return;}
+  const a=e.target.closest("[data-app]");if(a)openApp(a.dataset.app);});
 $("hFood").addEventListener("click",e=>{if(e.target.closest("[data-go]"))go("com");});
-$("hDone").onclick=()=>{const g=D(sel),{slot,s}=cs(sel),n=weekNo(sel);
-  if(g.fin){if(!confirmTwice($("hDone"),"Toca otra vez para desmarcar la sesión"))return;g.fin=false;delete g.ses;if(slot&&n>=1){if(S.semanas[n]&&S.semanas[n].cerrada)skipSlot(n,slot,"cierre de semana");else cambioEstado(n,slot,"hecha","movida");}persist();renderHoy();return;}
-  g.fin=true;if(slot){g.ses=slot;if(n>=1){reopen(n,slot);cambioEstado(n,slot,"movida","hecha");}}persist();renderHoy();
-  const c=weekCount(Math.max(1,s.w));
-  celebrate(s.w<1?"¡Bien!":c>=3?"Semana cumplida: "+c+" sesiones. Racha de "+semanas(streak())+".":"Sesión "+c+" de 3 esta semana.");};
+$("hDone").onclick=()=>{const d=sel,g=D(d);
+  if(strDone(d)){if(!confirmTwice($("hDone"),"Toca otra vez para desmarcar la sesión"))return;g.fin=false;delete g.ses;persist();renderHoy();return;}
+  g.fin=true;g.ses=nextSes(d);persist();renderHoy();
+  const c=strWeek(mon(d));
+  celebrate(weekNo(d)<1?"¡Bien!":c>2?"Sesión extra: +"+(c-2)+" sobre la meta. ¡Bien!":c===2?"Meta de la semana cumplida: 2 sesiones de fuerza. Racha de "+semanas(streak())+".":"Sesión "+c+" de 2 esta semana.");};
+$("hShort").onclick=()=>{const g=D(sel);g.corta=!g.corta;persist();renderHoy();};
+$("hRun").onclick=()=>{go("run");$("rgKm").focus();};
 function openApp(app){
   const A={hevy:["hevy://","https://hevy.com/"],strava:["strava://","https://www.strava.com/"]}[app];
   const t=Date.now();let left=false;const onHide=()=>{left=true;};document.addEventListener("visibilitychange",onHide,{once:true});
   location.href=A[0];
   setTimeout(()=>{if(!left&&!document.hidden&&Date.now()-t<3000)window.open(A[1],"_blank");},1400);}
-
-/* ---------- Mover / saltar sesiones ---------- */
-const cuando=d=>d===today()?"hoy":d===addDays(today(),1)?"mañana":"el "+DAYNAME[dayKey(d)].toLowerCase();
-function logCh(n,k,p){let c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);
-  if(!c){c={sesion:PLAN[k].n,slot:k,semana:+n,de:slotDate(n,k),a:null,estado:"movida"};S.cambios.push(c);}
-  return Object.assign(c,p);}
-function cambioEstado(n,k,de,a){const c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);if(c&&c.estado===de)c.estado=a;}
-function moveSlot(n,k,to){logCh(n,k,{});const w=wkRec(n);if(to===natDate(n,k))delete w.asg[k];else w.asg[k]=to;logCh(n,k,{a:to,estado:"movida"});}
-function skipSlot(n,k,motivo){const c=logCh(n,k,{});wkRec(n).skip[k]=true;c.estado="saltada";if(motivo)c.motivo=motivo;}
-/* Cierre de semana: lo que no se hizo ni se saltó pasa a "saltada". Nada se arrastra a la semana siguiente. */
-function closeWeeks(){if(!ready)return 0;const t=today(),lim=weekNo(t)-(dayKey(t)==="dom"?0:1);let ch=0;
-  for(let n=1;n<=lim;n++){if(S.semanas[n]&&S.semanas[n].cerrada)continue;
-    for(const k of SLOTS)if(!isSkip(n,k)&&!slotDone(n,k))skipSlot(n,k,"cierre de semana");
-    wkRec(n).cerrada=true;ch=1;}
-  return ch;}
-/* Hoja de decisión (reusa el scrim) */
-let askFns=[];
-function ask(title,text,opts){askFns=opts.map(o=>o.fn);
-  $("sheet2").innerHTML='<div class="grab"></div><h2>'+esc(title)+'</h2><p class="help">'+esc(text)+'</p>'+
-    opts.map((o,i)=>'<button class="btn opt press'+(o.rec?"":" ghost")+'" data-i="'+i+'">'+esc(o.t)+(o.rec?'<span class="rec">Recomendado</span>':'')+'</button>').join("")+'<button class="btn ghost opt press" data-i="-1">Cancelar</button>';
-  $("sheet2").classList.add("open");$("scrim").classList.add("open");$("sheet2").setAttribute("aria-hidden","false");}
-$("sheet2").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i;closeSheet();if(i>=0)askFns[i]();});
-function commit(n,k,to,skipX){skipX.forEach(x=>skipSlot(n,x,"conflicto con "+sn(k)));moveSlot(n,k,to);persist();renderHoy();renderCom();toast(to===today()?"Hoy toca "+sn(k):sn(k)+" pasó a "+cuando(to));}
-/* Mismo tipo (torso/pierna) a menos de 48 h */
-function viol(n,k,to,skipX){const r=[];if(PLAN[k].k!=="torso"&&PLAN[k].k!=="pierna")return r;
-  for(const o of SLOTS){if(o===k||skipX.includes(o)||isSkip(n,o)||PLAN[o].k!==PLAN[k].k)continue;
-    if(Math.abs(Math.round((parse(slotDate(n,o))-parse(to))/864e5))<2)r.push(o);}
-  return r;}
-function place(n,k,to,skipX){const bad=viol(n,k,to,skipX);if(!bad.length)return commit(n,k,to,skipX);
-  let alt=null;const end=addDays(weekStart(n),5);
-  for(let d=addDays(to,1);d<=end;d=addDays(d,1)){if(slotsOn(d).some(x=>x!==k)||viol(n,k,d,[]).length)continue;alt=d;break;}
-  const igual={t:to===today()?"Hacerla hoy igual":to===addDays(today(),1)?"Moverla igual a mañana":"Moverla igual al "+DAYNAME[dayKey(to)].toLowerCase(),fn:()=>commit(n,k,to,skipX)};
-  ask("Menos de 48 h de descanso",sn(k)+" y "+sn(bad[0])+" quedan con menos de 48 h."+(alt?" El día libre más cercano que respeta el descanso es el "+DAYNAME[dayKey(alt)].toLowerCase()+".":" No hay otro día libre esta semana que respete las 48 h."),
-    alt?[{t:"Moverla al "+DAYNAME[dayKey(alt)].toLowerCase(),rec:1,fn:()=>commit(n,k,alt,[])},igual]
-       :[igual,{t:"Saltarla",fn:()=>{skipSlot(n,k);persist();renderHoy();toast("Sesión saltada");}}]);}
-function mover(n,k,to){const X=slotsOn(to).find(x=>x!==k);
-  if(X&&doneOn(to,X)){toast("Ese día ya tiene una sesión hecha");return;}
-  if(!X)return place(n,k,to,[]);
-  const R={correr:0,torso:1,pierna:2},recA=R[PLAN[k].k]>R[PLAN[X].k]; // se salta primero lo que menos vale: correr, torso, pierna
-  const c=cuando(to),C=c[0].toUpperCase()+c.slice(1);
-  ask(C+" ya tienes "+sn(X)+". ¿Qué hago?","Solo una puede quedarse en ese día; la otra se salta.",[
-    {t:"Hacer "+sn(k)+" y saltar "+sn(X),rec:recA,fn:()=>place(n,k,to,[X])},
-    {t:"Hacer "+sn(X)+" y saltar "+sn(k),rec:!recA,fn:()=>{skipSlot(n,k,"conflicto con "+sn(X));persist();renderHoy();toast("Sesión saltada");}}
-  ].sort((a,b)=>(b.rec?1:0)-(a.rec?1:0)));}
-$("hMove").onclick=()=>{const t=today(),n=weekNo(t),k=slotsOn(t)[0];if(!k||n<1)return;
-  if(dayKey(t)==="sab"){if(!confirmTwice($("hMove"),"Toca otra vez para saltar la sesión de hoy"))return;skipSlot(n,k);persist();renderHoy();toast("Sesión saltada");return;}
-  mover(n,k,addDays(t,1));};
 
 /* ---------- COMIDA ---------- */
 let cTab="menu",cWeek=null,cDay=null;
@@ -678,7 +635,7 @@ function renderCom(){
   document.querySelectorAll("#cSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===cTab));
   const B=$("cBody");
   if(!cWeek){$("cWeekTxt").textContent="Sin menú todavía.";
-    B.innerHTML='<section class="card"><h2 style="margin-bottom:8px">Pega tu primer menú</h2><p class="empty">Cada sábado pídele a Claude tu menú de la semana en JSON y pégalo aquí. Con eso se arma tu comida diaria, la lista del súper y los pasos del meal prep.</p><button class="btn sm" id="cFirst" style="margin-top:12px">Importar menú</button></section>';
+    B.innerHTML='<section class="card"><h2 style="margin-bottom:8px">Pega tu primer menú</h2><p class="empty">Cada semana pídele a Claude tu menú en JSON y pégalo aquí. Con eso se arma tu comida diaria, la lista del súper y los pasos del meal prep.</p><button class="btn sm" id="cFirst" style="margin-top:12px">Importar menú</button></section>';
     $("cFirst").onclick=openSheet;return;}
   const M=S.menus[cWeek],end=addDays(cWeek,6);
   const fmt=d=>parse(d).toLocaleDateString("es-MX",{day:"numeric",month:"short"});
@@ -689,7 +646,7 @@ function renderCom(){
     const tk=(t>=cWeek&&t<=end)?dayKey(t):null;
     let h='<div class="days">'+ORDER.map(k=>'<button class="day'+(k===tk?" today":"")+'" data-k="'+k+'" aria-pressed="'+(k===cDay)+'">'+DAYNAME[k].slice(0,2)+'</button>').join("")+'</div>';
     const ml=mealsOf(cWeek,cDay);
-    h+='<section class="card"><div class="card-h"><h2>'+DAYNAME[cDay]+'</h2><span class="sub">'+esc(cs(addDays(cWeek,ORDER.indexOf(cDay))).s.n)+'</span></div>'+(ml?'<div class="meals">'+MEALS.filter(([k])=>ml[k]).map(([k,l])=>'<div class="meal"><span>'+l+'</span><div>'+esc(ml[k])+'</div></div>').join("")+'</div>':'<p class="empty">El menú no trae este día.</p>')+'</section>';
+    h+='<section class="card"><div class="card-h"><h2>'+DAYNAME[cDay]+'</h2><span class="sub">'+esc(parse(addDays(cWeek,ORDER.indexOf(cDay))).toLocaleDateString("es-MX",{day:"numeric",month:"short"}))+'</span></div>'+(ml?'<div class="meals">'+MEALS.filter(([k])=>ml[k]).map(([k,l])=>'<div class="meal"><span>'+l+'</span><div>'+esc(ml[k])+'</div></div>').join("")+'</div>':'<p class="empty">El menú no trae este día.</p>')+'</section>';
     B.innerHTML=h;
     B.querySelector(".days").onclick=e=>{const b=e.target.closest(".day");if(b){cDay=b.dataset.k;renderCom();}};}
   else if(cTab==="super"){
@@ -713,7 +670,7 @@ function renderCom(){
   }
   else{const steps=Array.isArray(M.prep)?M.prep:[],st=S.prep[cWeek]||(S.prep[cWeek]={});
     B.innerHTML=steps.length?'<section class="card"><ul class="steps">'+steps.map((p,i)=>{const m=String(p).match(/^([^:]{3,14}):\s*(.*)$/);
-      return '<li><button class="step'+(st[i]?" on":"")+'" data-i="'+i+'"><span class="num">'+(i+1)+'</span><p>'+(m?'<b>'+esc(m[1])+':</b> '+esc(m[2]):esc(p))+'</p><span class="box">'+CK+'</span></button></li>';}).join("")+'</ul></section><p class="help">Toca un paso cuando lo termines. Domingo y miércoles son días de meal prep.</p>'
+      return '<li><button class="step'+(st[i]?" on":"")+'" data-i="'+i+'"><span class="num">'+(i+1)+'</span><p>'+(m?'<b>'+esc(m[1])+':</b> '+esc(m[2]):esc(p))+'</p><span class="box">'+CK+'</span></button></li>';}).join("")+'</ul></section><p class="help">Toca un paso cuando lo termines. '+esc(prepTxt())+'</p>'
       :'<p class="empty">Este menú no trae pasos de meal prep.</p>';
     B.onclick=e=>{const b=e.target.closest(".step");if(!b||cTab!=="prep")return;st[b.dataset.i]=!st[b.dataset.i];persist();b.classList.toggle("on",!!st[b.dataset.i]);};
     B.oninput=null;}
@@ -783,7 +740,7 @@ async function renderPro(){
   chart($("chartWaist"),ws.map(r=>({d:r.d,v:r.waist})),{label:"Cintura",lines:[]});
   // Racha: últimas 8 semanas
   const cur=Math.max(1,weekNo(t)),from=Math.max(1,cur-7);let wh="";
-  for(let n=from;n<from+8;n++){const c=n<=cur?weekCount(n):0;wh+='<div><i class="'+(c>=3?"ok":"")+'"><u style="height:'+Math.min(100,c/6*100)+'%"></u></i><span>S'+n+'</span></div>';}
+  for(let n=from;n<from+8;n++){const c=n<=cur?weekCount(n):0;wh+='<div><i class="'+(c>=2?"ok":"")+'"><u style="height:'+Math.min(100,c/4*100)+'%"></u></i><span>S'+n+'</span></div>';}
   $("pWeeks").innerHTML=wh;const st=streak();$("pStreakTxt").textContent=st?semanas(st)+" seguidas":"Empieza esta semana";
   // Galería: la última foto de cada semana
   let keys=[];try{keys=await photoKeys();}catch(e){}
@@ -821,12 +778,12 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTh
 function share(name,blob){const file=new File([blob],name,{type:blob.type});
   if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return;}
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
-function summary(){const t=today(),cur=weekNo(t),weeks=[];for(let n=1;n<=Math.max(0,cur);n++){const s=[];for(let i=0;i<7;i++){const d=addDays(weekStart(n),i),g=S.days[d],ss=g&&g.ses?session(d,g.ses):cs(d).s;
-    if(g&&(g.fin||g.km))s.push({fecha:d,sesion:ss.n,hecha:!!g.fin,km:g.km?+g.km:undefined,min:g.min?+g.min:undefined});}weeks.push({semana:n,inicio:weekStart(n),sesionesHechas:weekCount(n),sesiones:s,cambios:S.cambios.filter(c=>+c.semana===n)});}
+function summary(){const t=today(),cur=weekNo(t),weeks=[];for(let n=1;n<=Math.max(0,cur);n++){const s=[];for(let i=0;i<7;i++){const d=addDays(weekStart(n),i),g=S.days[d],ss=g&&g.ses&&PLAN[g.ses]?session(d,g.ses,g.corta):null;
+    if(g&&(g.fin||g.km))s.push({fecha:d,sesion:ss?ss.n:"Carrera",hecha:!!g.fin,corta:g.corta?true:undefined,km:g.km?+g.km:undefined,min:g.min?+g.min:undefined});}weeks.push({semana:n,inicio:weekStart(n),sesionesHechas:weekCount(n),sesiones:s,cambios:S.cambios.filter(c=>+c.semana===n)});}
   const kgs=S.body.filter(r=>r.kg>0);
   return{semanaActual:cur,racha:streak(),meta:{kg:GOAL,reto:CHALLENGE,fecha:GOAL_DATE,inicio:START},pesoInicial:kgs[0]||null,pesoActual:kgs[kgs.length-1]||null,semanas:weeks};}
 $("bkSave").onclick=()=>{S.lastBackup=Date.now();persist();
-  const out={app:"mi-entrenador",version:2,exportado:new Date().toISOString(),resumen:summary(),cambios:S.cambios,datos:S};
+  const out={app:"mi-entrenador",version:3,exportado:new Date().toISOString(),resumen:summary(),cambios:S.cambios,datos:S};
   share("respaldo-entrenador-"+today()+".json",new Blob([JSON.stringify(out,null,1)],{type:"application/json"}));renderAj();};
 $("bkLoad").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
   try{const j=JSON.parse(await f.text()),d=j.datos||j;if(typeof d.days!=="object")throw 0;
@@ -850,7 +807,11 @@ $("bkPhotos").onclick=async()=>{let keys=[];try{keys=await photoKeys();}catch(e)
   share("fotos-entrenador-"+today()+".zip",zip(files));};
 let armed=null;function confirmTwice(el,msg){if(armed===el){armed=null;return true;}armed=el;toast(msg);setTimeout(()=>{if(armed===el)armed=null;},3500);return false;}
 $("wipe").onclick=async()=>{if(!confirmTwice($("wipe"),"Toca otra vez para borrar todo, fotos incluidas"))return;const w=S.settings.worker;S=blank();S.settings.worker=w;persist();try{await photoClear();}catch(e){}Object.keys(urls).forEach(dropURL);sel=null;cWeek=null;renderAll();toast("Se borró todo");};
-async function renderAj(){applyTheme(S.settings.theme);renderStrava();renderSync();
+function paintFood(){$("sSuper").value=String(superDay());const p=prepDays();document.querySelectorAll("#sPrep .day").forEach(b=>b.setAttribute("aria-pressed",p.includes(+b.dataset.n)));}
+$("sSuper").onchange=e=>{S.settings.superDay=+e.target.value;persist();renderHoy();renderCom();};
+$("sPrep").addEventListener("click",e=>{const b=e.target.closest(".day");if(!b)return;const n=+b.dataset.n,p=prepDays().slice(),i=p.indexOf(n);if(i<0)p.push(n);else p.splice(i,1);
+  S.settings.prepDays=p.sort((a,b)=>a-b);persist();paintFood();renderHoy();renderCom();});
+async function renderAj(){applyTheme(S.settings.theme);paintFood();renderStrava();renderSync();
   $("bkInfo").textContent=S.lastBackup?"Último: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"})+". Guárdalo en mi-sistema/respaldos-entrenador":"JSON con todo menos las fotos. Guárdalo en mi-sistema/respaldos-entrenador";
   try{const k=await photoKeys();$("phInfo").textContent=k.length?k.length+(k.length===1?" foto":" fotos")+" en un .zip":"Un .zip con todas tus fotos";}catch(e){}
   try{const p=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():false;
@@ -898,12 +859,13 @@ async function pullStrava(){const tk=await token(),H={headers:{Authorization:"Be
   ACT.after=newest;await kvPut("acts",ACT);return autoMark();}
 function byDay(o){const m={};for(const a of Object.values(o))(m[a.d]=m[a.d]||[]).push(a);return m;}
 function autoMark(){let n=0;const R=byDay(ACT.runs),G=byDay(ACT.gym);
-  const mk=(d,x,k)=>{x.fin=true;x.ses=k;x.src="strava";if(weekNo(d)>=1){reopen(weekNo(d),k);cambioEstado(weekNo(d),k,"movida","hecha");}};
-  for(const d in R){if(weekNo(d)<1)continue;const k=slotsFor(d).find(q=>PLAN[q].k==="correr");if(!k)continue;const id=R[d].map(a=>a.id).sort().join(","),g=S.days[d];
-    if(g&&(g.fin||g.auto===id))continue;const x=D(d);mk(d,x,k);x.auto=id;
+  // Carreras: solo llenan km y min del día (no cuentan como sesión de fuerza).
+  for(const d of Object.keys(R).sort()){if(weekNo(d)<1)continue;const id=R[d].map(a=>a.id).sort().join(","),g=S.days[d];
+    if(g&&(g.autoR===id||g.auto===id))continue;const x=D(d);x.autoR=id;
     if(!x.km){x.km=String(tenth(R[d].reduce((s,a)=>s+a.km,0)));x.min=String(Math.round(R[d].reduce((s,a)=>s+a.sec,0)/60));}n++;}
-  for(const d in G){if(weekNo(d)<1)continue;const k=slotsFor(d).find(q=>PLAN[q].k==="torso"||PLAN[q].k==="pierna");if(!k)continue;const id=G[d].map(a=>a.id).sort().join(","),g=S.days[d];
-    if(g&&(g.fin||g.auto===id))continue;const x=D(d);mk(d,x,k);x.auto=id;n++;}
+  // Pesas: un día sin nada marcado toma la siguiente sesión de la rotación (en orden de fecha para encadenar).
+  for(const d of Object.keys(G).sort()){if(weekNo(d)<1)continue;const id=G[d].map(a=>a.id).sort().join(","),g=S.days[d];
+    if(g&&(g.fin||g.auto===id))continue;const x=D(d);x.fin=true;x.ses=nextSes(d);x.src="strava";x.auto=id;n++;}
   return n;}
 function applyRemote(items){let ch=0;
   for(const {k,v} of items){if(SY.q[k])continue;const j=v==null?undefined:JSON.stringify(v);if(SY.known[k]===j)continue;
@@ -971,27 +933,33 @@ function renderStrava(){const w=$("stWorker");if(document.activeElement!==w)w.va
 const paceTxt=s=>Math.floor(s/60)+":"+pad(Math.round(s%60));
 const durTxt=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?h+":"+pad(m)+":"+pad(x):m+":"+pad(x);};
 function weekRunKm(n){const ws=weekStart(n),we=addDays(ws,6),R=byDay(ACT.runs);let km=0;
-  for(let i=0;i<7;i++){const d=addDays(ws,i);if(R[d])km+=R[d].reduce((s,a)=>s+a.km,0);else{const g=S.days[d];if(g&&parseFloat(g.km)>0)km+=parseFloat(g.km);}}
+  for(let i=0;i<7;i++){const d=addDays(ws,i),g=S.days[d];km+=Math.max(R[d]?R[d].reduce((s,a)=>s+a.km,0):0,g&&parseFloat(g.km)>0?parseFloat(g.km):0);}
   return tenth(km);}
-function renderRun(){const t=today(),cur=Math.max(1,weekNo(t)),[mie,sab]=runPlan(cur),meta=tenth(mie+sab),done=weekRunKm(cur),pct=meta?Math.min(1,done/meta):0;
-  const ws=weekStart(cur);
+function renderRun(){const t=today(),cur=Math.max(1,weekNo(t)),[ra,rb]=runPlan(cur),meta=tenth(ra+rb),done=weekRunKm(cur),pct=meta?Math.min(1,done/meta):0;
+  const rd=$("rgD");if(!rd.value||rd.value===rd.dataset.def){rd.value=t;rd.dataset.def=t;}
   $("rWeek").innerHTML='<div class="card-h"><h2>Esta semana</h2><span class="sub">Semana '+cur+(cur===4?" · descarga":"")+'</span></div>'+
     '<div class="wkm"><span class="big n">'+fmt1(done)+'</span><span class="of">de '+fmt1(meta)+' km</span></div>'+
     '<div class="meter"><i style="width:'+(pct*100)+'%"></i></div>'+
-    '<p class="help" style="margin-top:10px">Miércoles '+fmt1(mie)+' km suave · sábado '+fmt1(sab)+' km largo. '+(done>=meta?"¡Meta de la semana cumplida!":"Te faltan "+fmt1(Math.max(0,meta-done))+" km.")+'</p>';
+    '<p class="help" style="margin-top:10px">Esta semana: 2 carreras, ~'+fmt1(ra)+' km y ~'+fmt1(rb)+' km, en los días que te acomoden. '+(done>=meta?"¡Meta de la semana cumplida!":"Te faltan "+fmt1(Math.max(0,meta-done))+" km.")+'</p>';
   // Plan: semana anterior + las próximas
   const first5=(()=>{for(let w=1;w<60;w++)if(runPlan(w)[1]>=5)return w;})(),first10=(()=>{for(let w=1;w<60;w++)if(runPlan(w)[1]>=10)return w;})();
-  let rows="";for(let w=Math.max(1,cur-1);w<=cur+5;w++){const [a,b]=runPlan(w),s0=weekStart(w),dm=addDays(s0,2),dsb=addDays(s0,5),gm=S.days[dm],gs=S.days[dsb];
+  let rows="";for(let w=Math.max(1,cur-1);w<=cur+5;w++){const [a,b]=runPlan(w),s0=weekStart(w);
     rows+='<li class="'+(w===cur?"cur":"")+'"><span><b>S'+w+'</b><span class="dl">'+parse(s0).toLocaleDateString("es-MX",{day:"numeric",month:"short"})+(w===4?" · descarga":"")+'</span></span>'+
-      '<span class="d">mié <b>'+fmt1(a)+'</b>'+(slotDone(w,"mie")?CK:"")+'</span><span class="d">sáb <b>'+fmt1(b)+'</b>'+(slotDone(w,"sab")?CK:"")+'</span></li>';}
-  $("rPlan").innerHTML='<div class="card-h"><h2>Plan de regreso</h2><span class="sub">km por día</span></div><ul class="plan">'+rows+'</ul>'+
-    '<p class="help" style="margin-top:10px">Después de la semana 4 sube 10 % por semana. Primer sábado de 5 km: semana '+first5+' ('+parse(addDays(weekStart(first5),5)).toLocaleDateString("es-MX",{day:"numeric",month:"short"})+'). 10 km: semana '+first10+'.</p>';
-  // Últimas carreras
-  const runs=Object.values(ACT.runs).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:b.id-a.id).slice(0,12);
-  $("rList").innerHTML='<div class="card-h"><h2>Últimas carreras</h2>'+(AU?'<span class="sub">De Strava</span>':'')+'</div>'+
+      '<span class="d">1ª <b>'+fmt1(a)+'</b></span><span class="d">2ª <b>'+fmt1(b)+'</b>'+(w<=cur&&weekRunKm(w)>=tenth(a+b)?CK:"")+'</span></li>';}
+  $("rPlan").innerHTML='<div class="card-h"><h2>Plan de regreso</h2><span class="sub">km por carrera</span></div><ul class="plan">'+rows+'</ul>'+
+    '<p class="help" style="margin-top:10px">Después de la semana 4 sube 10 % por semana. Primera carrera de 5 km: semana '+first5+' (desde el '+parse(weekStart(first5)).toLocaleDateString("es-MX",{day:"numeric",month:"short"})+'). 10 km: semana '+first10+'.</p>';
+  // Últimas carreras: las de Strava y las que registraste a mano (días sin carrera de Strava)
+  const R2=byDay(ACT.runs),man=Object.keys(S.days).filter(d=>!R2[d]&&parseFloat(S.days[d].km)>0).map(d=>({id:"m"+d,d,km:parseFloat(S.days[d].km),sec:(parseFloat(S.days[d].min)||0)*60}));
+  const runs=Object.values(ACT.runs).concat(man).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:(+b.id||0)-(+a.id||0)).slice(0,12);
+  $("rList").innerHTML='<div class="card-h"><h2>Últimas carreras</h2>'+(AU?'<span class="sub">Strava y tus registros</span>':'')+'</div>'+
     (runs.length?'<ul class="rl">'+runs.map(a=>{const p=a.km>0?a.sec/a.km:0,cls=!p?"":p<PACE_LO?"fast":p<=PACE_HI?"ok":"",lab=!p?"":p<PACE_LO?"muy rápido":p<=PACE_HI?"en zona":"suave";
-      return '<li><span class="km n">'+fmt1(a.km)+' km</span><span class="pz n '+cls+'">'+(p?paceTxt(p)+' /km':'—')+'<em>'+lab+'</em></span><small>'+esc(parse(a.d).toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"short"}))+' · '+durTxt(a.sec)+'</small></li>';}).join("")+'</ul>'
-     :'<p class="empty">'+(AU?"Todavía no hay carreras en Strava desde agosto. Corre con Strava y aparecen aquí solas.":"Conecta Strava en Ajustes y aquí aparecen tus carreras con su ritmo.")+'</p>'+(AU?'':'<button class="btn ghost sm press" data-go="aj" style="margin-top:10px;background:var(--well)">Ir a Ajustes</button>'));}
+      return '<li><span class="km n">'+fmt1(a.km)+' km</span><span class="pz n '+cls+'">'+(p?paceTxt(p)+' /km':'—')+'<em>'+lab+'</em></span><small>'+esc(parse(a.d).toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"short"}))+(a.sec?' · '+durTxt(a.sec):'')+'</small></li>';}).join("")+'</ul>'
+     :'<p class="empty">'+(AU?"Todavía no hay carreras. Registra una arriba o corre con Strava y aparecen aquí solas.":"Registra tu primera carrera arriba, o conecta Strava en Ajustes para ver tus carreras con su ritmo.")+'</p>'+(AU?'':'<button class="btn ghost sm press" data-go="aj" style="margin-top:10px;background:var(--well)">Ir a Ajustes</button>'));}
+$("rgBtn").onclick=()=>{const km=parseFloat($("rgKm").value),mn=parseFloat($("rgMin").value)||0,d=$("rgD").value||today();
+  if(!(km>0)){toast("Escribe los km de la carrera");return;}
+  const g=D(d),k0=parseFloat(g.km)||0,m0=parseFloat(g.min)||0,r2=x=>String(+x.toFixed(2));
+  g.km=r2(k0+km);if(mn>0)g.min=r2(m0+mn);persist();$("rgKm").value="";$("rgMin").value="";renderRun();renderHoy();
+  toast("Carrera registrada: "+fmt1(km)+" km"+(mn>0?" · "+paceTxt(mn*60/km)+" /km":"")+(k0>0?" · ese día suman "+fmt1(k0+km)+" km":""));};
 $("v-run").addEventListener("click",e=>{if(e.target.closest("[data-go=aj]"))go("aj");});
 
 /* ---------- PESAS (Hevy → Strava) ---------- */
