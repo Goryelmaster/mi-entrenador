@@ -74,6 +74,11 @@ h2{font:700 21px/1.15 var(--cond);margin:0;letter-spacing:.01em}
 .plate.done i::after{content:"";display:block}
 .soft{display:flex;gap:12px;align-items:flex-start;background:var(--well);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--ink-2)}
 .soft b{color:var(--ink)}
+.plate.skip i{opacity:.35;border-style:dashed}.plate.skip span{text-decoration:line-through}
+.pend .card-h h2{font-size:17px}
+.btn.opt{height:auto;min-height:50px;padding:10px 14px;font-size:18px;line-height:1.15;flex-wrap:wrap;text-align:center}
+.rec{font:700 11px var(--cond);letter-spacing:.06em;text-transform:uppercase;background:var(--bg);color:var(--ink);padding:3px 8px;border-radius:99px}
+.sheet .btn.ghost{background:var(--well)}
 
 /* Ejercicios */
 .exs{list-style:none;margin:0;padding:0}
@@ -284,11 +289,13 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
       <span class="sub" id="hDate"></span>
       <span class="chip" id="hStreak"></span>
     </div>
+    <div id="hPend" hidden></div>
     <section class="hero" id="hHero"></section>
     <div class="plates" id="hPlates" role="group" aria-label="Tu semana"></div>
     <div class="soft" id="hSoft" hidden></div>
     <section class="card" id="hWork"></section>
     <button class="btn" id="hDone"></button>
+    <button class="btn ghost sm press" id="hMove" hidden></button>
     <section class="card goal k-rest" id="hGoal"></section>
     <section class="card" id="hFood"></section>
     <div class="install" id="installTip" hidden><b>Instálala en tu iPhone:</b> en Safari toca Compartir y luego “Agregar a pantalla de inicio”.</div>
@@ -381,6 +388,7 @@ textarea.input{min-height:200px;font:13px/1.4 ui-monospace,Menlo,monospace;resiz
 </nav></div>
 
 <div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet2" aria-hidden="true" role="dialog" aria-label="Mover sesión"></section>
 <section class="sheet" id="sheet" aria-hidden="true" role="dialog" aria-label="Importar menú">
   <div class="grab"></div>
   <h2>Importar menú de la semana</h2>
@@ -401,7 +409,8 @@ const pad=n=>String(n).padStart(2,"0");
 const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const parse=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c,12);};
 const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return ymd(d);};
-const today=()=>ymd(new Date());
+const HOY=new URLSearchParams(location.search).get("hoy"); // solo para pruebas: ?hoy=2026-11-26
+const today=()=>/^\d{4}-\d\d-\d\d$/.test(HOY||"")?HOY:ymd(new Date());
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money=n=>"$"+Math.round(n).toLocaleString("es-MX");
 const CK='<svg><use href="#ck"/></svg>';
@@ -430,18 +439,40 @@ const tenth=x=>Math.round(x*10)/10;
 function runPlan(w){if(w<1)return[0,0];if(RUN_PLAN[w])return RUN_PLAN[w];const f=Math.pow(1.1,w-4);return[Math.min(6,tenth(3*f)),Math.min(10,tenth(3.5*f))];}
 function runKm(w,type){return runPlan(w)[type==="largo"?1:0];}
 const PACE_LO=390,PACE_HI=420; // 6:30 y 7:00 min/km en segundos
-function session(d){const k=dayKey(d),p=PLAN[k],w=weekNo(d),soft=w<=1;
+function session(d,slot){const k=slot||dayKey(d),p=PLAN[k],w=weekNo(d),soft=w<=1;
   const s={key:k,n:p.n,k:p.k,tag:p.tag||"",w,soft,pre:w<1};
   if(p.ex)s.ex=p.ex.map(([n,sets,reps,kg])=>({n,sets:soft?Math.max(2,sets-1):sets,reps,kg:kg&&soft&&/\d (kg|lb)/.test(kg)?kg+" · hoy ~30 % menos":kg}));
   if(p.run){s.km=runKm(Math.max(1,w),p.run);s.run=p.run;}
   return s;}
+/* Asignación de sesiones: cada sesión (lun..sab) vive en su fecha natural salvo que se haya movido o saltado. */
+const SLOTS=["lun","mar","mie","jue","vie","sab"];
+const sn=k=>PLAN[k].n.split(" + ")[0];
+const wkRec=n=>S.semanas[n]||(S.semanas[n]={asg:{},skip:{},cerrada:false});
+const natDate=(n,k)=>addDays(weekStart(n),SLOTS.indexOf(k));
+const slotDate=(n,k)=>{const w=S.semanas[n];return(w&&w.asg&&w.asg[k])||natDate(n,k);};
+const isSkip=(n,k)=>{const w=S.semanas[n];return!!(w&&w.skip&&w.skip[k]);};
+const doneOn=(d,k)=>{const g=S.days[d];return!!(g&&g.fin&&(g.ses?g.ses===k:dayKey(d)===k));};
+const slotDone=(n,k)=>doneOn(slotDate(n,k),k);
+function slotsOn(d){const n=weekNo(d);if(n<1)return dayKey(d)==="dom"?[]:[dayKey(d)];return SLOTS.filter(k=>!isSkip(n,k)&&slotDate(n,k)===d);}
+/* Saltada solo por cierre de semana: si llega tarde (Strava o la palomeas), se reabre y cuenta. */
+const cerrSkip=(n,k)=>{if(!isSkip(n,k))return false;const c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);return!!(c&&c.motivo==="cierre de semana");};
+const slotsFor=d=>{const n=weekNo(d),a=slotsOn(d);return n<1?a:a.concat(SLOTS.filter(k=>cerrSkip(n,k)&&slotDate(n,k)===d));};
+function reopen(n,k){if(!cerrSkip(n,k))return;delete wkRec(n).skip[k];const c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);c.estado="hecha";delete c.motivo;}
+const cs=d=>{const k=slotsFor(d)[0]||null;return{slot:k,s:session(d,k||"dom")};};
 
 /* ---------- Datos: todo en IndexedDB de este celular ---------- */
 const KEY="mi-entrenador:v1"; // versión vieja en localStorage (se deja intacta como respaldo)
 const WORKER_DEFAULT="";
-const blank=()=>({days:{},menus:{},shop:{},prep:{},body:[],settings:{theme:"auto",worker:WORKER_DEFAULT},lastBackup:null});
-const norm0=x=>({...blank(),...x,settings:{...blank().settings,...((x&&x.settings)||{})}});
-let S=blank();
+const blank=()=>({version:2,days:{},menus:{},shop:{},prep:{},body:[],semanas:{},cambios:[],settings:{theme:"auto",worker:WORKER_DEFAULT},lastBackup:null});
+/* Migración v1 → v2: guarda copia intacta en kv "S_backup_v1" (si no hay una) y solo AGREGA campos (ses, semanas, cambios, version). */
+function norm0(x){const old=!(x&&x.version),o={...blank(),...x,settings:{...blank().settings,...((x&&x.settings)||{})}};
+  if(old){
+    if(x&&x.days&&Object.keys(x.days).length){const raw=JSON.parse(JSON.stringify(x));kvGet("S_backup_v1").then(v=>{if(!v)kvPut("S_backup_v1",raw);}).catch(()=>{});}
+    for(const d in o.days){const g=o.days[d];if(g&&g.fin&&!g.ses&&/^\d{4}-\d\d-\d\d$/.test(d)){const k=dayKey(d);if(k!=="dom")g.ses=k;}}
+    o.semanas={};o.cambios=[];o.version=2;}
+  else{if(!o.semanas||typeof o.semanas!=="object")o.semanas={};if(!Array.isArray(o.cambios))o.cambios=[];}
+  return o;}
+let S=blank(),ready=false;
 const D=d=>S.days[d]||(S.days[d]={ex:{},fin:false,km:"",min:""});
 
 let dbp=null;
@@ -458,7 +489,9 @@ const kvPut=(k,v)=>tx("readwrite",st=>st.put(v,k),"kv");
    Subir lo mismo dos veces no duplica nada: la nube guarda por llave y gana lo más reciente. */
 let SY={q:{},known:{},cursor:0,last:null,err:"",lastTs:0};
 const recs=()=>{const r={};for(const d in S.days)r["day:"+d]=S.days[d];for(const b of S.body)r["body:"+b.d]=b;
-  for(const k in S.menus)r["menu:"+k]=S.menus[k];for(const k in S.shop)r["shop:"+k]=S.shop[k];for(const k in S.prep)r["prep:"+k]=S.prep[k];return r;};
+  for(const k in S.menus)r["menu:"+k]=S.menus[k];for(const k in S.shop)r["shop:"+k]=S.shop[k];for(const k in S.prep)r["prep:"+k]=S.prep[k];
+  for(const k in S.semanas)r["semana:"+k]=S.semanas[k];
+  const cb={};for(const c of S.cambios)(cb[c.semana]=cb[c.semana]||[]).push(c);for(const k in cb)r["cambios:"+k]=cb[k];return r;};
 function track(){const r=recs();let n=0;const ts=SY.lastTs=Math.max(Date.now(),(SY.lastTs||0)+1);
   for(const k in r){const j=JSON.stringify(r[k]);if(SY.known[k]!==j){SY.known[k]=j;SY.q[k]=ts;n++;}}
   for(const k in SY.known)if(!(k in r)){delete SY.known[k];SY.q[k]=ts;n++;}
@@ -487,7 +520,7 @@ const urls={};async function photoURL(k){if(urls[k])return urls[k];const b=await
 function dropURL(k){if(urls[k]){URL.revokeObjectURL(urls[k]);delete urls[k];}}
 
 /* ---------- Racha ---------- */
-function weekCount(n){let c=0;for(let i=0;i<6;i++){const d=addDays(weekStart(n),i),g=S.days[d];if(g&&g.fin)c++;}return c;}
+function weekCount(n){return SLOTS.filter(k=>slotDone(n,k)).length;}
 function streak(){const cur=weekNo(today());if(cur<1)return 0;let s=weekCount(cur)>=3?1:0;for(let n=cur-1;n>=1;n--){if(weekCount(n)>=3)s++;else break;}return s;}
 const semanas=n=>n===1?"1 semana":n+" semanas";
 
@@ -502,19 +535,23 @@ function mealsOf(m,dk){const menu=(S.menus[m]||{}).menu||{};for(const k in menu)
 /* ---------- HOY ---------- */
 let sel=null;
 function renderHoy(){
-  const t=today();if(!sel)sel=t;const s=session(sel),g=S.days[sel]||{ex:{},fin:false},isToday=sel===t;
+  if(closeWeeks())persist();
+  const t=today();if(!sel)sel=t;const c0=cs(sel),s=c0.s,slot=c0.slot,wn=weekNo(sel),g=S.days[sel]||{ex:{},fin:false},isToday=sel===t,free=!slot&&!s.pre&&dayKey(sel)!=="dom";
+  if(free)s.tag="Hoy no tienes sesión";
   const dt=parse(t);
   $("hDate").textContent=dt.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
   const st=streak();$("hStreak").innerHTML='Racha <b class="n">'+st+'</b>';
   const when=isToday?(s.pre?"Hoy · empiezas mañana":"Hoy · semana "+s.w):parse(sel).toLocaleDateString("es-MX",{weekday:"long",day:"numeric"})+(s.w>=1?" · semana "+s.w:"");
   $("hHero").className="hero k-"+s.k;
-  $("hHero").innerHTML='<p class="when">'+esc(when)+'</p><h1>'+esc(s.n)+'</h1>'+(s.tag?'<p class="tag">'+esc(s.tag)+'</p>':'')+(g.fin&&g.src==="strava"?'<p class="tag">✓ Llegó desde Strava</p>':'');
-  renderGoal();
+  $("hHero").innerHTML='<p class="when">'+esc(when)+'</p><h1>'+esc(s.n)+'</h1>'+(s.tag?'<p class="tag">'+esc(s.tag)+'</p>':'')+(slot&&wn>=1&&slotDate(wn,slot)!==natDate(wn,slot)?'<p class="tag"><span class="chip">Movida del '+DAYNAME[slot].toLowerCase()+'</span></p>':'')+(g.fin&&g.src==="strava"?'<p class="tag">✓ Llegó desde Strava</p>':'');
+  renderGoal();renderPend();
   // Tira de la semana (lunes a domingo de la semana del día elegido)
   const wk=Math.max(1,weekNo(sel)),ws=weekStart(wk);
-  let ph="";for(let i=0;i<7;i++){const d=addDays(ws,i),ss=session(d),gg=S.days[d];
+  let ph="";for(let i=0;i<7;i++){const d=addDays(ws,i),dk=dayKey(d);let k=cs(d).slot,sk=!!k&&isSkip(wk,k);
+    if(!k&&dk!=="dom"){const q=SLOTS.find(x=>isSkip(wk,x)&&slotDate(wk,x)===d);if(q){k=q;sk=true;}}
+    const ss=session(d,k||"dom"),dn=!!k&&!sk&&doneOn(d,k);
     const size=ss.k==="rest"?"sm":ss.k==="correr"?"mid":"big";
-    ph+='<button class="plate press '+size+' k-'+ss.k+(gg&&gg.fin?" done":"")+(d===t?" today":"")+'" data-d="'+d+'" aria-pressed="'+(d===sel)+'" aria-label="'+DAYNAME[ss.key]+': '+esc(ss.n)+(gg&&gg.fin?", hecho":"")+'"><i></i><span>'+DAYNAME[ss.key][0]+'</span></button>';}
+    ph+='<button class="plate press '+size+' k-'+ss.k+(dn?" done":"")+(sk?" skip":"")+(d===t?" today":"")+'" data-d="'+d+'" aria-pressed="'+(d===sel)+'" aria-label="'+DAYNAME[dk]+': '+esc(ss.n)+(sk?", saltada":dn?", hecho":"")+'"><i></i><span>'+DAYNAME[dk][0]+'</span></button>';}
   $("hPlates").innerHTML=ph;
   // Semana de regreso
   $("hSoft").hidden=!(s.soft&&!s.pre&&s.k!=="rest");
@@ -530,6 +567,7 @@ function renderHoy(){
       '<div class="row2" style="margin-top:14px"><label class="field"><span>Km hechos</span><input class="input n" id="rKm" type="number" inputmode="decimal" step="0.1" value="'+esc(km)+'" placeholder="—"></label><label class="field"><span>Minutos</span><input class="input n" id="rMin" type="number" inputmode="decimal" step="1" value="'+esc(min)+'" placeholder="—"></label></div>'+
       '<p class="pace" id="rPace" style="margin:10px 0 0"></p><div class="apps"><button class="appbtn press" data-app="strava">'+ICON.ext+'Abrir Strava</button></div>';
     paintPace();}
+  else if(free){W.innerHTML='<div class="card-h"><h2>Día libre</h2></div><p class="empty">No hay sesión este día: la moviste a otro o la saltaste.</p>';}
   else{W.innerHTML='<div class="card-h"><h2>'+(s.pre?"Antes de arrancar":"Domingo de registro")+'</h2></div><p class="empty" style="margin-bottom:12px">'+(s.pre?"Toma hoy tu registro inicial: peso en ayunas, cintura y una foto. Así vas a ver el cambio desde el día uno.":"Peso en ayunas, cintura y foto frente al espejo. Hoy también toca meal prep.")+'</p><button class="btn ghost sm press" id="goReg" style="background:var(--well)">Hacer registro</button>';}
   // Comida
   const m=menuFor(sel),dk=dayKey(sel),ml=m&&mealsOf(m,dk);
@@ -539,7 +577,18 @@ function renderHoy(){
   // Botón terminé
   const B=$("hDone");B.hidden=s.k==="rest";B.className="btn k-"+s.k+(g.fin?" done":"");
   B.innerHTML=g.fin?CK.replace("<svg>",'<svg width="22" height="22">')+(g.src==="strava"?" Hecha · Strava":" Sesión hecha"):"Terminé ✓";
+  const canMove=isToday&&!!slot&&!g.fin&&wn>=1&&dayKey(sel)!=="dom";
+  $("hMove").hidden=!canMove;if(canMove)$("hMove").textContent=dayKey(sel)==="sab"?"No pude hoy → saltar":"No pude hoy → pasar a mañana";
 }
+/* Sesiones pendientes de días anteriores de esta semana: no se mueven solas, tú decides. */
+function pendList(){const t=today(),n=weekNo(t);if(n<1||(S.semanas[n]&&S.semanas[n].cerrada))return[];
+  return SLOTS.filter(k=>slotDate(n,k)<t&&!isSkip(n,k)&&!slotDone(n,k));}
+function renderPend(){const P=$("hPend"),pl=sel===today()?pendList():[],n=weekNo(today());P.hidden=!pl.length;
+  P.innerHTML=pl.map(k=>'<section class="card pend k-'+PLAN[k].k+'"><div class="card-h"><h2>Pendiente · del '+DAYNAME[dayKey(slotDate(n,k))].toLowerCase()+'</h2><span class="sub">'+esc(sn(k))+'</span></div>'+
+    '<div class="row2"><button class="btn sm press" data-pk="'+k+'" data-a="hoy">Hacerla hoy</button><button class="btn ghost sm press" data-pk="'+k+'" data-a="skip">Saltarla</button></div></section>').join("");}
+$("hPend").addEventListener("click",e=>{const b=e.target.closest("[data-pk]");if(!b)return;const k=b.dataset.pk,n=weekNo(today());
+  if(b.dataset.a==="hoy"){mover(n,k,today());return;}
+  if(!confirmTwice(b,"Toca otra vez para saltar esa sesión"))return;skipSlot(n,k);persist();renderHoy();toast("Sesión saltada");});
 const fmt1=x=>String(+(+x).toFixed(1)).replace(".",",");
 function renderGoal(){const t=today(),kgs=S.body.filter(r=>r.kg>0),first=kgs[0],last=kgs[kgs.length-1];
   const ws=weekStart(Math.max(1,weekNo(t))),we=addDays(ws,6),wk=kgs.filter(r=>r.d>=ws&&r.d<=we).pop();
@@ -557,23 +606,70 @@ function paintPace(){const g=S.days[sel]||{},el=$("rPace");if(!el)return;const k
 $("hPlates").addEventListener("click",e=>{const b=e.target.closest(".plate");if(!b)return;sel=b.dataset.d;renderHoy();});
 $("hWork").addEventListener("click",e=>{
   const x=e.target.closest(".ex");if(x){const g=D(sel),i=x.dataset.i;g.ex[i]=!g.ex[i];persist();
-    x.classList.toggle("on",!!g.ex[i]);const s=session(sel),n=s.ex.filter((_,j)=>g.ex[j]).length;
+    x.classList.toggle("on",!!g.ex[i]);const s=cs(sel).s,n=s.ex.filter((_,j)=>g.ex[j]).length;
     $("hWork").querySelector(".card-h .sub").textContent=n+" de "+s.ex.length;$("hWork").querySelector(".meter i").style.width=(n/s.ex.length*100)+"%";
     if(n===s.ex.length&&!g.fin)toast("Todo palomeado. Toca “Terminé ✓” para sumarlo a tu racha.");return;}
   const a=e.target.closest("[data-app]");if(a){openApp(a.dataset.app);return;}
   if(e.target.closest("#goReg"))go("pro");});
 $("hWork").addEventListener("input",e=>{if(e.target.id==="rKm"||e.target.id==="rMin"){const g=D(sel);g[e.target.id==="rKm"?"km":"min"]=e.target.value;persist();paintPace();}});
 $("hFood").addEventListener("click",e=>{if(e.target.closest("[data-go]"))go("com");});
-$("hDone").onclick=()=>{const g=D(sel);
-  if(g.fin){if(!confirmTwice($("hDone"),"Toca otra vez para desmarcar la sesión"))return;g.fin=false;persist();renderHoy();return;}
-  g.fin=true;persist();renderHoy();
-  const s=session(sel),c=weekCount(Math.max(1,s.w));
+$("hDone").onclick=()=>{const g=D(sel),{slot,s}=cs(sel),n=weekNo(sel);
+  if(g.fin){if(!confirmTwice($("hDone"),"Toca otra vez para desmarcar la sesión"))return;g.fin=false;delete g.ses;if(slot&&n>=1){if(S.semanas[n]&&S.semanas[n].cerrada)skipSlot(n,slot,"cierre de semana");else cambioEstado(n,slot,"hecha","movida");}persist();renderHoy();return;}
+  g.fin=true;if(slot){g.ses=slot;if(n>=1){reopen(n,slot);cambioEstado(n,slot,"movida","hecha");}}persist();renderHoy();
+  const c=weekCount(Math.max(1,s.w));
   celebrate(s.w<1?"¡Bien!":c>=3?"Semana cumplida: "+c+" sesiones. Racha de "+semanas(streak())+".":"Sesión "+c+" de 3 esta semana.");};
 function openApp(app){
   const A={hevy:["hevy://","https://hevy.com/"],strava:["strava://","https://www.strava.com/"]}[app];
   const t=Date.now();let left=false;const onHide=()=>{left=true;};document.addEventListener("visibilitychange",onHide,{once:true});
   location.href=A[0];
   setTimeout(()=>{if(!left&&!document.hidden&&Date.now()-t<3000)window.open(A[1],"_blank");},1400);}
+
+/* ---------- Mover / saltar sesiones ---------- */
+const cuando=d=>d===today()?"hoy":d===addDays(today(),1)?"mañana":"el "+DAYNAME[dayKey(d)].toLowerCase();
+function logCh(n,k,p){let c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);
+  if(!c){c={sesion:PLAN[k].n,slot:k,semana:+n,de:slotDate(n,k),a:null,estado:"movida"};S.cambios.push(c);}
+  return Object.assign(c,p);}
+function cambioEstado(n,k,de,a){const c=S.cambios.find(x=>+x.semana===+n&&x.slot===k);if(c&&c.estado===de)c.estado=a;}
+function moveSlot(n,k,to){logCh(n,k,{});const w=wkRec(n);if(to===natDate(n,k))delete w.asg[k];else w.asg[k]=to;logCh(n,k,{a:to,estado:"movida"});}
+function skipSlot(n,k,motivo){const c=logCh(n,k,{});wkRec(n).skip[k]=true;c.estado="saltada";if(motivo)c.motivo=motivo;}
+/* Cierre de semana: lo que no se hizo ni se saltó pasa a "saltada". Nada se arrastra a la semana siguiente. */
+function closeWeeks(){if(!ready)return 0;const t=today(),lim=weekNo(t)-(dayKey(t)==="dom"?0:1);let ch=0;
+  for(let n=1;n<=lim;n++){if(S.semanas[n]&&S.semanas[n].cerrada)continue;
+    for(const k of SLOTS)if(!isSkip(n,k)&&!slotDone(n,k))skipSlot(n,k,"cierre de semana");
+    wkRec(n).cerrada=true;ch=1;}
+  return ch;}
+/* Hoja de decisión (reusa el scrim) */
+let askFns=[];
+function ask(title,text,opts){askFns=opts.map(o=>o.fn);
+  $("sheet2").innerHTML='<div class="grab"></div><h2>'+esc(title)+'</h2><p class="help">'+esc(text)+'</p>'+
+    opts.map((o,i)=>'<button class="btn opt press'+(o.rec?"":" ghost")+'" data-i="'+i+'">'+esc(o.t)+(o.rec?'<span class="rec">Recomendado</span>':'')+'</button>').join("")+'<button class="btn ghost opt press" data-i="-1">Cancelar</button>';
+  $("sheet2").classList.add("open");$("scrim").classList.add("open");$("sheet2").setAttribute("aria-hidden","false");}
+$("sheet2").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const i=+b.dataset.i;closeSheet();if(i>=0)askFns[i]();});
+function commit(n,k,to,skipX){skipX.forEach(x=>skipSlot(n,x,"conflicto con "+sn(k)));moveSlot(n,k,to);persist();renderHoy();renderCom();toast(to===today()?"Hoy toca "+sn(k):sn(k)+" pasó a "+cuando(to));}
+/* Mismo tipo (torso/pierna) a menos de 48 h */
+function viol(n,k,to,skipX){const r=[];if(PLAN[k].k!=="torso"&&PLAN[k].k!=="pierna")return r;
+  for(const o of SLOTS){if(o===k||skipX.includes(o)||isSkip(n,o)||PLAN[o].k!==PLAN[k].k)continue;
+    if(Math.abs(Math.round((parse(slotDate(n,o))-parse(to))/864e5))<2)r.push(o);}
+  return r;}
+function place(n,k,to,skipX){const bad=viol(n,k,to,skipX);if(!bad.length)return commit(n,k,to,skipX);
+  let alt=null;const end=addDays(weekStart(n),5);
+  for(let d=addDays(to,1);d<=end;d=addDays(d,1)){if(slotsOn(d).some(x=>x!==k)||viol(n,k,d,[]).length)continue;alt=d;break;}
+  const igual={t:to===today()?"Hacerla hoy igual":to===addDays(today(),1)?"Moverla igual a mañana":"Moverla igual al "+DAYNAME[dayKey(to)].toLowerCase(),fn:()=>commit(n,k,to,skipX)};
+  ask("Menos de 48 h de descanso",sn(k)+" y "+sn(bad[0])+" quedan con menos de 48 h."+(alt?" El día libre más cercano que respeta el descanso es el "+DAYNAME[dayKey(alt)].toLowerCase()+".":" No hay otro día libre esta semana que respete las 48 h."),
+    alt?[{t:"Moverla al "+DAYNAME[dayKey(alt)].toLowerCase(),rec:1,fn:()=>commit(n,k,alt,[])},igual]
+       :[igual,{t:"Saltarla",fn:()=>{skipSlot(n,k);persist();renderHoy();toast("Sesión saltada");}}]);}
+function mover(n,k,to){const X=slotsOn(to).find(x=>x!==k);
+  if(X&&doneOn(to,X)){toast("Ese día ya tiene una sesión hecha");return;}
+  if(!X)return place(n,k,to,[]);
+  const R={correr:0,torso:1,pierna:2},recA=R[PLAN[k].k]>R[PLAN[X].k]; // se salta primero lo que menos vale: correr, torso, pierna
+  const c=cuando(to),C=c[0].toUpperCase()+c.slice(1);
+  ask(C+" ya tienes "+sn(X)+". ¿Qué hago?","Solo una puede quedarse en ese día; la otra se salta.",[
+    {t:"Hacer "+sn(k)+" y saltar "+sn(X),rec:recA,fn:()=>place(n,k,to,[X])},
+    {t:"Hacer "+sn(X)+" y saltar "+sn(k),rec:!recA,fn:()=>{skipSlot(n,k,"conflicto con "+sn(X));persist();renderHoy();toast("Sesión saltada");}}
+  ].sort((a,b)=>(b.rec?1:0)-(a.rec?1:0)));}
+$("hMove").onclick=()=>{const t=today(),n=weekNo(t),k=slotsOn(t)[0];if(!k||n<1)return;
+  if(dayKey(t)==="sab"){if(!confirmTwice($("hMove"),"Toca otra vez para saltar la sesión de hoy"))return;skipSlot(n,k);persist();renderHoy();toast("Sesión saltada");return;}
+  mover(n,k,addDays(t,1));};
 
 /* ---------- COMIDA ---------- */
 let cTab="menu",cWeek=null,cDay=null;
@@ -593,7 +689,7 @@ function renderCom(){
     const tk=(t>=cWeek&&t<=end)?dayKey(t):null;
     let h='<div class="days">'+ORDER.map(k=>'<button class="day'+(k===tk?" today":"")+'" data-k="'+k+'" aria-pressed="'+(k===cDay)+'">'+DAYNAME[k].slice(0,2)+'</button>').join("")+'</div>';
     const ml=mealsOf(cWeek,cDay);
-    h+='<section class="card"><div class="card-h"><h2>'+DAYNAME[cDay]+'</h2><span class="sub">'+esc(session(addDays(cWeek,ORDER.indexOf(cDay))).n)+'</span></div>'+(ml?'<div class="meals">'+MEALS.filter(([k])=>ml[k]).map(([k,l])=>'<div class="meal"><span>'+l+'</span><div>'+esc(ml[k])+'</div></div>').join("")+'</div>':'<p class="empty">El menú no trae este día.</p>')+'</section>';
+    h+='<section class="card"><div class="card-h"><h2>'+DAYNAME[cDay]+'</h2><span class="sub">'+esc(cs(addDays(cWeek,ORDER.indexOf(cDay))).s.n)+'</span></div>'+(ml?'<div class="meals">'+MEALS.filter(([k])=>ml[k]).map(([k,l])=>'<div class="meal"><span>'+l+'</span><div>'+esc(ml[k])+'</div></div>').join("")+'</div>':'<p class="empty">El menú no trae este día.</p>')+'</section>';
     B.innerHTML=h;
     B.querySelector(".days").onclick=e=>{const b=e.target.closest(".day");if(b){cDay=b.dataset.k;renderCom();}};}
   else if(cTab==="super"){
@@ -630,7 +726,7 @@ function paintBudget(){const M=S.menus[cWeek],items=M.super||[],st=S.shop[cWeek]
 $("cSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(b){cTab=b.dataset.s;$("cBody").onclick=null;$("cBody").oninput=null;renderCom();}});
 $("cImport").onclick=openSheet;
 function openSheet(){$("mText").value="";$("sheet").classList.add("open");$("scrim").classList.add("open");$("sheet").setAttribute("aria-hidden","false");}
-function closeSheet(){$("sheet").classList.remove("open");$("scrim").classList.remove("open");$("sheet").setAttribute("aria-hidden","true");}
+function closeSheet(){$("sheet2").classList.remove("open");$("sheet2").setAttribute("aria-hidden","true");$("sheet").classList.remove("open");$("scrim").classList.remove("open");$("sheet").setAttribute("aria-hidden","true");}
 $("scrim").onclick=closeSheet;document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSheet();closeViewer();}});
 $("mPaste").onclick=async()=>{try{$("mText").value=await navigator.clipboard.readText();}catch(e){toast("Mantén presionado el cuadro y elige Pegar");}};
 $("mSave").onclick=()=>{let raw=$("mText").value.trim();if(!raw){toast("Pega el JSON del menú");return;}
@@ -725,12 +821,12 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTh
 function share(name,blob){const file=new File([blob],name,{type:blob.type});
   if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return;}
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
-function summary(){const t=today(),cur=weekNo(t),weeks=[];for(let n=1;n<=Math.max(0,cur);n++){const s=[];for(let i=0;i<7;i++){const d=addDays(weekStart(n),i),g=S.days[d],ss=session(d);
-    if(g&&(g.fin||g.km))s.push({fecha:d,sesion:ss.n,hecha:!!g.fin,km:g.km?+g.km:undefined,min:g.min?+g.min:undefined});}weeks.push({semana:n,inicio:weekStart(n),sesionesHechas:weekCount(n),sesiones:s});}
+function summary(){const t=today(),cur=weekNo(t),weeks=[];for(let n=1;n<=Math.max(0,cur);n++){const s=[];for(let i=0;i<7;i++){const d=addDays(weekStart(n),i),g=S.days[d],ss=g&&g.ses?session(d,g.ses):cs(d).s;
+    if(g&&(g.fin||g.km))s.push({fecha:d,sesion:ss.n,hecha:!!g.fin,km:g.km?+g.km:undefined,min:g.min?+g.min:undefined});}weeks.push({semana:n,inicio:weekStart(n),sesionesHechas:weekCount(n),sesiones:s,cambios:S.cambios.filter(c=>+c.semana===n)});}
   const kgs=S.body.filter(r=>r.kg>0);
   return{semanaActual:cur,racha:streak(),meta:{kg:GOAL,reto:CHALLENGE,fecha:GOAL_DATE,inicio:START},pesoInicial:kgs[0]||null,pesoActual:kgs[kgs.length-1]||null,semanas:weeks};}
 $("bkSave").onclick=()=>{S.lastBackup=Date.now();persist();
-  const out={app:"mi-entrenador",version:1,exportado:new Date().toISOString(),resumen:summary(),datos:S};
+  const out={app:"mi-entrenador",version:2,exportado:new Date().toISOString(),resumen:summary(),cambios:S.cambios,datos:S};
   share("respaldo-entrenador-"+today()+".json",new Blob([JSON.stringify(out,null,1)],{type:"application/json"}));renderAj();};
 $("bkLoad").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
   try{const j=JSON.parse(await f.text()),d=j.datos||j;if(typeof d.days!=="object")throw 0;
@@ -802,11 +898,12 @@ async function pullStrava(){const tk=await token(),H={headers:{Authorization:"Be
   ACT.after=newest;await kvPut("acts",ACT);return autoMark();}
 function byDay(o){const m={};for(const a of Object.values(o))(m[a.d]=m[a.d]||[]).push(a);return m;}
 function autoMark(){let n=0;const R=byDay(ACT.runs),G=byDay(ACT.gym);
-  for(const d in R){if(weekNo(d)<1||session(d).k!=="correr")continue;const id=R[d].map(a=>a.id).sort().join(","),g=S.days[d];
-    if(g&&(g.fin||g.auto===id))continue;const x=D(d);x.fin=true;x.src="strava";x.auto=id;
+  const mk=(d,x,k)=>{x.fin=true;x.ses=k;x.src="strava";if(weekNo(d)>=1){reopen(weekNo(d),k);cambioEstado(weekNo(d),k,"movida","hecha");}};
+  for(const d in R){if(weekNo(d)<1)continue;const k=slotsFor(d).find(q=>PLAN[q].k==="correr");if(!k)continue;const id=R[d].map(a=>a.id).sort().join(","),g=S.days[d];
+    if(g&&(g.fin||g.auto===id))continue;const x=D(d);mk(d,x,k);x.auto=id;
     if(!x.km){x.km=String(tenth(R[d].reduce((s,a)=>s+a.km,0)));x.min=String(Math.round(R[d].reduce((s,a)=>s+a.sec,0)/60));}n++;}
-  for(const d in G){const k=session(d).k;if(weekNo(d)<1||(k!=="torso"&&k!=="pierna"))continue;const id=G[d].map(a=>a.id).sort().join(","),g=S.days[d];
-    if(g&&(g.fin||g.auto===id))continue;const x=D(d);x.fin=true;x.src="strava";x.auto=id;n++;}
+  for(const d in G){if(weekNo(d)<1)continue;const k=slotsFor(d).find(q=>PLAN[q].k==="torso"||PLAN[q].k==="pierna");if(!k)continue;const id=G[d].map(a=>a.id).sort().join(","),g=S.days[d];
+    if(g&&(g.fin||g.auto===id))continue;const x=D(d);mk(d,x,k);x.auto=id;n++;}
   return n;}
 function applyRemote(items){let ch=0;
   for(const {k,v} of items){if(SY.q[k])continue;const j=v==null?undefined:JSON.stringify(v);if(SY.known[k]===j)continue;
@@ -816,6 +913,8 @@ function applyRemote(items){let ch=0;
     else if(t==="menu"){const old=S.menus[id];if(v&&old&&JSON.stringify((old.super||[]).map(x=>x.item))!==JSON.stringify((v.super||[]).map(x=>x.item)))delete S.shop[id];if(v)S.menus[id]=v;else delete S.menus[id];}
     else if(t==="shop"){if(v)S.shop[id]=v;else delete S.shop[id];}
     else if(t==="prep"){if(v)S.prep[id]=v;else delete S.prep[id];}
+    else if(t==="semana"){if(v)S.semanas[id]=v;else delete S.semanas[id];}
+    else if(t==="cambios"){S.cambios=S.cambios.filter(c=>String(c.semana)!==id);if(Array.isArray(v))S.cambios.push(...v);}
     else continue;
     if(j===undefined)delete SY.known[k];else SY.known[k]=j;ch++;}
   return ch;}
@@ -884,7 +983,7 @@ function renderRun(){const t=today(),cur=Math.max(1,weekNo(t)),[mie,sab]=runPlan
   const first5=(()=>{for(let w=1;w<60;w++)if(runPlan(w)[1]>=5)return w;})(),first10=(()=>{for(let w=1;w<60;w++)if(runPlan(w)[1]>=10)return w;})();
   let rows="";for(let w=Math.max(1,cur-1);w<=cur+5;w++){const [a,b]=runPlan(w),s0=weekStart(w),dm=addDays(s0,2),dsb=addDays(s0,5),gm=S.days[dm],gs=S.days[dsb];
     rows+='<li class="'+(w===cur?"cur":"")+'"><span><b>S'+w+'</b><span class="dl">'+parse(s0).toLocaleDateString("es-MX",{day:"numeric",month:"short"})+(w===4?" · descarga":"")+'</span></span>'+
-      '<span class="d">mié <b>'+fmt1(a)+'</b>'+(gm&&gm.fin?CK:"")+'</span><span class="d">sáb <b>'+fmt1(b)+'</b>'+(gs&&gs.fin?CK:"")+'</span></li>';}
+      '<span class="d">mié <b>'+fmt1(a)+'</b>'+(slotDone(w,"mie")?CK:"")+'</span><span class="d">sáb <b>'+fmt1(b)+'</b>'+(slotDone(w,"sab")?CK:"")+'</span></li>';}
   $("rPlan").innerHTML='<div class="card-h"><h2>Plan de regreso</h2><span class="sub">km por día</span></div><ul class="plan">'+rows+'</ul>'+
     '<p class="help" style="margin-top:10px">Después de la semana 4 sube 10 % por semana. Primer sábado de 5 km: semana '+first5+' ('+parse(addDays(weekStart(first5),5)).toLocaleDateString("es-MX",{day:"numeric",month:"short"})+'). 10 km: semana '+first10+'.</p>';
   // Últimas carreras
@@ -951,7 +1050,7 @@ async function boot(){
     else{let old=null;try{old=JSON.parse(localStorage.getItem(KEY));}catch(e){}if(old){S=norm0(old);S.migrado=new Date().toISOString();}}
     if(sy)SY={...SY,...sy};AU=au||null;PEND=pe||null;if(ac)ACT={...ACT,...ac};
   }catch(e){try{const old=JSON.parse(localStorage.getItem(KEY));if(old)S=norm0(old);}catch(_){}toast("No se pudo abrir la base de datos del celular");}
-  persist();renderAll();askPersist();syncNow();if(PEND)pollPair();}
+  ready=true;persist();renderAll();askPersist();syncNow();if(PEND)pollPair();}
 
 /* ---------- Navegación, aviso y confeti ---------- */
 const VIEWS={hoy:renderHoy,run:renderRun,com:renderCom,pro:renderPro,aj:renderAj};
